@@ -1,0 +1,110 @@
+[
+  {
+    "id": "relicario",
+    "name": "Relicario Santa Luz",
+    "description": "Metal trabalhado, banho dourado e acabamento artesanal.",
+    "variants": [
+      {
+        "id": "relicario-p-dourado-metal",
+        "size": "Pequeno",
+        "color": "Dourado",
+        "material": "Metal",
+        "price": 289,
+        "stock": 6
+      },
+      {
+        "id": "relicario-m-dourado-metal",
+        "size": "Medio",
+        "color": "Dourado",
+        "material": "Metal",
+        "price": 299,
+        "stock": 4
+      },
+      {
+        "id": "relicario-m-bronze-metal",
+        "size": "Medio",
+        "color": "Bronze",
+        "material": "Metal",
+        "price": 289,
+        "stock": 3
+      }
+    ]
+  },
+  {
+    "id": "terco",
+    "name": "Terco Rosario Classico",
+    "description": "Madeira nobre com detalhes em metal escovado.",
+    "variants": [
+      {
+        "id": "terco-54-clara-madeira",
+        "size": "54 cm",
+        "color": "Madeira clara",
+        "material": "Madeira",
+        "price": 79,
+        "stock": 12
+      },
+      {
+        "id": "terco-54-escura-madeira",
+        "size": "54 cm",
+        "color": "Madeira escura",
+        "material": "Madeira",
+        "price": 79,
+        "stock": 9
+      },
+      {
+        "id": "terco-70-escura-madeira",
+        "size": "70 cm",
+        "color": "Madeira escura",
+        "material": "Madeira",
+        "price": 89,
+        "stock": 6
+      }
+    ]
+  },
+  {
+    "id": "crucifixo",
+    "name": "Crucifixo de Parede",
+    "description": "Acabamento envelhecido e textura artesanal.",
+    "variants": [
+      {
+        "id": "crucifixo-20-bronze-madeira",
+        "size": "20 cm",
+        "color": "Bronze",
+        "material": "Madeira + metal",
+        "price": 129,
+        "stock": 5
+      },
+      {
+        "id": "crucifixo-30-dourado-madeira",
+        "size": "30 cm",
+        "color": "Dourado",
+        "material": "Madeira + metal",
+        "price": 159,
+        "stock": 4
+      }
+    ]
+  },
+  {
+    "id": "livro",
+    "name": "Livro de Oracoes",
+    "description": "Capa dura, 240 paginas, letras confortaveis.",
+    "variants": [
+      {
+        "id": "livro-bolso-azul-couro",
+        "size": "Bolso",
+        "color": "Azul",
+        "material": "Capa couro",
+        "price": 64,
+        "stock": 10
+      },
+      {
+        "id": "livro-grande-vermelho-couro",
+        "size": "Grande",
+        "color": "Vermelho",
+        "material": "Capa couro",
+        "price": 74,
+        "stock": 7
+      }
+    ]
+  }
+]

@@ -83,15 +83,16 @@
           <div class="hero-visual">
             <div class="hero-card">
               <span class="tag">Coleção Áurea</span>
-              <h3>Relicário Santa Luz</h3>
+              <h3 data-product-name="relicario">Relicario Santa Luz</h3>
               <p>Metal trabalhado, banho dourado e acabamento artesanal.</p>
+              <div class="variant-selectors" data-product-id="relicario"></div>
+              <div class="stock-status" data-product-id="relicario"></div>
               <div class="price">
-                <span>R$ 289,00</span>
+                <span class="product-price" data-product-id="relicario">R$ 289,00</span>
                 <button
                   class="primary-button small add-to-cart"
                   type="button"
-                  data-product="Relicário Santa Luz"
-                  data-price="289"
+                  data-product-id="relicario"
                 >
                   Comprar
                 </button>
@@ -116,62 +117,65 @@
             <button class="ghost-button" type="button">Ver todos</button>
           </div>
           <div class="collection-grid">
-            <article class="collection-card">
+            <article class="collection-card" data-product-id="terco">
               <div class="image-box">
                 <span class="image-badge">Mais vendido</span>
                 <span class="icon">T</span>
               </div>
-              <h3>Terço Rosário Clássico</h3>
+              <h3 data-product-name="terco">Terco Rosario Classico</h3>
               <p>Madeira nobre com detalhes em metal escovado.</p>
+              <div class="variant-selectors" data-product-id="terco"></div>
+              <div class="stock-status" data-product-id="terco"></div>
               <div class="card-footer">
-                <span class="price-tag">R$ 79,00</span>
+                <span class="price-tag product-price" data-product-id="terco">R$ 79,00</span>
                 <button
                   class="secondary-button small add-to-cart"
                   type="button"
-                  data-product="Terço Rosário Clássico"
-                  data-price="79"
+                  data-product-id="terco"
                 >
                   Adicionar
                 </button>
               </div>
             </article>
-            <article class="collection-card">
+            <article class="collection-card" data-product-id="crucifixo">
               <div class="image-box alt">
                 <span class="icon">✝</span>
               </div>
-              <h3>Crucifixo de Parede</h3>
+              <h3 data-product-name="crucifixo">Crucifixo de Parede</h3>
               <p>Acabamento envelhecido e textura artesanal.</p>
+              <div class="variant-selectors" data-product-id="crucifixo"></div>
+              <div class="stock-status" data-product-id="crucifixo"></div>
               <div class="card-footer">
-                <span class="price-tag">R$ 129,00</span>
+                <span class="price-tag product-price" data-product-id="crucifixo">R$ 129,00</span>
                 <button
                   class="secondary-button small add-to-cart"
                   type="button"
-                  data-product="Crucifixo de Parede"
-                  data-price="129"
+                  data-product-id="crucifixo"
                 >
                   Adicionar
                 </button>
               </div>
             </article>
-            <article class="collection-card">
+            <article class="collection-card" data-product-id="livro">
               <div class="image-box muted">
                 <span class="icon">✣</span>
               </div>
-              <h3>Imagem Nossa Senhora</h3>
-              <p>Resina premium, 22cm, pintura manual.</p>
+              <h3 data-product-name="livro">Livro de Oracoes</h3>
+              <p>Capa dura, 240 paginas, letras confortaveis.</p>
+              <div class="variant-selectors" data-product-id="livro"></div>
+              <div class="stock-status" data-product-id="livro"></div>
               <div class="card-footer">
-                <span class="price-tag">R$ 189,00</span>
+                <span class="price-tag product-price" data-product-id="livro">R$ 64,00</span>
                 <button
                   class="secondary-button small add-to-cart"
                   type="button"
-                  data-product="Imagem Nossa Senhora"
-                  data-price="189"
+                  data-product-id="livro"
                 >
                   Adicionar
                 </button>
               </div>
             </article>
-            <article class="collection-card">
+            <article class="collection-card" data-product-id="imagem" style="display: none;">
               <div class="image-box soft">
                 <span class="icon">✦</span>
               </div>
@@ -346,10 +350,37 @@
         <button class="ghost-button cart-close" type="button">Fechar</button>
       </div>
       <div class="cart-items" data-cart-items></div>
+      <div class="cart-inputs">
+        <label>
+          CEP para entrega
+          <input type="text" placeholder="00000-000" data-cep-input />
+        </label>
+        <label>
+          Cupom de desconto
+          <input type="text" placeholder="EX: BEMVINDO10" data-coupon-input />
+        </label>
+        <button class="secondary-button small" type="button" data-quote>
+          Calcular frete e cupom
+        </button>
+      </div>
       <div class="cart-footer">
-        <div class="cart-total">
-          <span>Total</span>
-          <strong data-cart-total>R$ 0,00</strong>
+        <div class="cart-totals">
+          <div>
+            <span>Subtotal</span>
+            <strong data-cart-subtotal>R$ 0,00</strong>
+          </div>
+          <div>
+            <span>Frete</span>
+            <strong data-cart-shipping>R$ 0,00</strong>
+          </div>
+          <div>
+            <span>Desconto</span>
+            <strong data-cart-discount>R$ 0,00</strong>
+          </div>
+          <div class="cart-total">
+            <span>Total</span>
+            <strong data-cart-total>R$ 0,00</strong>
+          </div>
         </div>
         <button class="primary-button" type="button" data-checkout>
           Finalizar compra

@@ -4,6 +4,9 @@ const cartButton = document.querySelector(".cart-button");
 const cartDrawer = document.querySelector(".cart-drawer");
 const cartOverlay = document.querySelector("[data-cart-overlay]");
 const cartItemsEl = document.querySelector("[data-cart-items]");
+const cartSubtotalEl = document.querySelector("[data-cart-subtotal]");
+const cartShippingEl = document.querySelector("[data-cart-shipping]");
+const cartDiscountEl = document.querySelector("[data-cart-discount]");
 const cartTotalEl = document.querySelector("[data-cart-total]");
 const cartCountEl = document.querySelector(".cart-count");
 const checkoutButton = document.querySelector("[data-checkout]");
@@ -11,6 +14,12 @@ const modal = document.querySelector(".modal");
 const modalOverlay = document.querySelector("[data-modal-overlay]");
 const modalClose = document.querySelector("[data-modal-close]");
 const modalMessage = document.querySelector("[data-modal-message]");
+const cepInput = document.querySelector("[data-cep-input]");
+const couponInput = document.querySelector("[data-coupon-input]");
+const quoteButton = document.querySelector("[data-quote]");
+
+const productsCache = new Map();
+let lastQuote = { shipping: 0, discount: 0 };
 
 if (menuButton && siteNav) {
   menuButton.addEventListener("click", () => {
@@ -24,14 +33,19 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-const cart = JSON.parse(localStorage.getItem("theotimus_cart") || "[]");
+const rawCart = JSON.parse(localStorage.getItem("theotimus_cart") || "[]");
+const cart = Array.isArray(rawCart)
+  ? rawCart.filter((item) => item && item.productId && item.variantId)
+  : [];
+
+const formatCurrency = (value) => currencyFormatter.format(value);
 
 const persistCart = () => {
   localStorage.setItem("theotimus_cart", JSON.stringify(cart));
 };
 
 const updateCartUI = () => {
-  if (!cartItemsEl || !cartTotalEl || !cartCountEl) {
+  if (!cartItemsEl || !cartTotalEl || !cartCountEl || !cartSubtotalEl) {
     return;
   }
 
@@ -44,6 +58,7 @@ const updateCartUI = () => {
     itemEl.className = "cart-item";
     itemEl.innerHTML = `
       <h4>${item.name}</h4>
+      ${item.variantLabel ? `<div class="cart-meta"><span>${item.variantLabel}</span></div>` : ""}
       <div class="cart-meta">
         <span>${item.quantity}x</span>
         <strong>${currencyFormatter.format(item.price * item.quantity)}</strong>
@@ -57,7 +72,10 @@ const updateCartUI = () => {
     cartItemsEl.innerHTML = "<p>Seu carrinho está vazio.</p>";
   }
 
-  cartTotalEl.textContent = currencyFormatter.format(total);
+  cartSubtotalEl.textContent = formatCurrency(total);
+  cartShippingEl.textContent = formatCurrency(lastQuote.shipping || 0);
+  cartDiscountEl.textContent = formatCurrency(lastQuote.discount || 0);
+  cartTotalEl.textContent = formatCurrency(total + (lastQuote.shipping || 0) - (lastQuote.discount || 0));
   cartCountEl.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
 };
 
@@ -88,20 +106,77 @@ const closeModal = () => {
   modal?.setAttribute("aria-hidden", "true");
 };
 
+const refreshQuote = async () => {
+  if (!quoteButton) {
+    return;
+  }
+  quoteButton.disabled = true;
+  try {
+    const response = await fetch("/api/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: cart,
+        cep: cepInput?.value || "",
+        coupon: couponInput?.value || "",
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel calcular.");
+    }
+    lastQuote = { shipping: data.shipping, discount: data.discount };
+    updateCartUI();
+  } catch (error) {
+    showModal(error.message || "Nao foi possivel calcular.");
+  } finally {
+    quoteButton.disabled = false;
+  }
+};
+
+quoteButton?.addEventListener("click", refreshQuote);
+
 document.querySelectorAll(".add-to-cart").forEach((button) => {
   button.addEventListener("click", () => {
-    const name = button.getAttribute("data-product");
-    const price = Number(button.getAttribute("data-price"));
-    if (!name || Number.isNaN(price)) {
+    const productId = button.getAttribute("data-product-id");
+    if (!productId) {
+      return;
+    }
+    const product = productsCache.get(productId);
+    const variantId = button.getAttribute("data-variant-id");
+    if (!product || !variantId) {
+      showModal("Selecione uma variacao.");
+      return;
+    }
+    const variant = product.variants.find((item) => item.id === variantId);
+    if (!variant) {
+      showModal("Variacao invalida.");
       return;
     }
 
-    const existing = cart.find((item) => item.name === name);
+    const existing = cart.find(
+      (item) => item.productId === productId && item.variantId === variantId
+    );
+    const currentQty = existing ? existing.quantity : 0;
+    if (currentQty + 1 > variant.stock) {
+      showModal("Sem estoque suficiente para essa variacao.");
+      return;
+    }
+
+    const variantLabel = `${variant.size} · ${variant.color} · ${variant.material}`;
     if (existing) {
       existing.quantity += 1;
     } else {
-      cart.push({ name, price, quantity: 1 });
+      cart.push({
+        productId,
+        variantId,
+        name: product.name,
+        variantLabel,
+        price: variant.price,
+        quantity: 1,
+      });
     }
+    lastQuote = { shipping: 0, discount: 0 };
     persistCart();
     updateCartUI();
     openCart();
@@ -118,6 +193,7 @@ cartItemsEl?.addEventListener("click", (event) => {
     return;
   }
   cart.splice(Number(index), 1);
+  lastQuote = { shipping: 0, discount: 0 };
   persistCart();
   updateCartUI();
 });
@@ -134,7 +210,11 @@ checkoutButton?.addEventListener("click", () => {
   fetch("/create-checkout-session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items: cart }),
+    body: JSON.stringify({
+      items: cart,
+      cep: cepInput?.value || "",
+      coupon: couponInput?.value || "",
+    }),
   })
     .then(async (response) => {
       if (!response.ok) {
@@ -163,3 +243,92 @@ modalClose?.addEventListener("click", () => {
 });
 
 updateCartUI();
+
+const renderVariantSelectors = (product) => {
+  const container = document.querySelector(
+    `.variant-selectors[data-product-id="${product.id}"]`
+  );
+  const priceEl = document.querySelector(
+    `.product-price[data-product-id="${product.id}"]`
+  );
+  const stockEl = document.querySelector(
+    `.stock-status[data-product-id="${product.id}"]`
+  );
+  const button = document.querySelector(
+    `.add-to-cart[data-product-id="${product.id}"]`
+  );
+
+  if (!container || !priceEl || !button) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  const sizes = [...new Set(product.variants.map((v) => v.size))];
+  const colors = [...new Set(product.variants.map((v) => v.color))];
+  const materials = [...new Set(product.variants.map((v) => v.material))];
+
+  const createSelect = (label, options) => {
+    const select = document.createElement("select");
+    select.setAttribute("aria-label", label);
+    options.forEach((opt) => {
+      const option = document.createElement("option");
+      option.value = opt;
+      option.textContent = `${label}: ${opt}`;
+      select.appendChild(option);
+    });
+    return select;
+  };
+
+  const sizeSelect = createSelect("Tamanho", sizes);
+  const colorSelect = createSelect("Cor", colors);
+  const materialSelect = createSelect("Material", materials);
+
+  container.appendChild(sizeSelect);
+  container.appendChild(colorSelect);
+  container.appendChild(materialSelect);
+
+  const updateVariant = () => {
+    const variant = product.variants.find(
+      (v) =>
+        v.size === sizeSelect.value &&
+        v.color === colorSelect.value &&
+        v.material === materialSelect.value
+    );
+
+    if (!variant) {
+      button.disabled = true;
+      stockEl.textContent = "Variacao indisponivel.";
+      return;
+    }
+
+    priceEl.textContent = formatCurrency(variant.price);
+    button.setAttribute("data-variant-id", variant.id);
+
+    if (variant.stock <= 0) {
+      button.disabled = true;
+      stockEl.textContent = "Sem estoque.";
+    } else {
+      button.disabled = false;
+      stockEl.textContent = `Estoque: ${variant.stock}`;
+    }
+  };
+
+  [sizeSelect, colorSelect, materialSelect].forEach((select) => {
+    select.addEventListener("change", updateVariant);
+  });
+
+  updateVariant();
+};
+
+fetch("/api/products")
+  .then((res) => res.json())
+  .then((data) => {
+    data.forEach((product) => {
+      productsCache.set(product.id, product);
+      renderVariantSelectors(product);
+    });
+  })
+  .catch(() => {
+    showModal("Falha ao carregar produtos.");
+  });
