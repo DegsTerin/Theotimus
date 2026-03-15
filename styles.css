@@ -635,13 +635,16 @@ body {
   overflow-y: auto;
   display: grid;
   gap: 14px;
+  grid-auto-rows: max-content;
+  align-content: start;
 }
 
 .cart-item {
   background: var(--paper);
   border-radius: var(--radius-sm);
   padding: 14px;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
