@@ -837,23 +837,30 @@ body {
 
   .header-actions {
     width: 100%;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
-    gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-  }
-
-  .header-actions button,
-  .header-actions .cart-button,
-  .header-actions .locale-select,
-  .header-actions .currency-select {
-    height: 38px;
-    width: 100%;
+    gap: 10px;
   }
 
   .locale-controls {
-    grid-column: span 2;
-    justify-content: flex-start;
+    display: flex;
+    gap: 8px;
+    flex: 1 1 100%;
+  }
+
+  .locale-select,
+  .currency-select {
+    flex: 1 1 120px;
+  }
+
+  .header-actions .ghost-button,
+  .header-actions .cart-button {
+    flex: 1 1 140px;
+  }
+
+  .header-actions .primary-button {
+    flex: 1 1 180px;
   }
 
   .highlight-card.offset {
@@ -872,16 +879,16 @@ body {
   }
 
   .header-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
   }
 
   .locale-controls {
-    grid-column: 1 / -1;
+    flex: 1 1 100%;
   }
 
+  .header-actions .ghost-button,
   .header-actions .cart-button,
   .header-actions .primary-button {
-    grid-column: 1 / -1;
+    flex: 1 1 100%;
   }
 }
