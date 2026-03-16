@@ -172,6 +172,9 @@ const getEmailTransport = () => {
     host,
     port: Number(process.env.SMTP_PORT || 587),
     secure: false,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
     auth: { user, pass },
   });
 };
@@ -193,12 +196,16 @@ const sendOrderEmail = async (email, itemsText) => {
   if (!transport) {
     throw new Error("SMTP nao configurado.");
   }
-  await transport.sendMail({
+  const mailPromise = transport.sendMail({
     from: process.env.SMTP_FROM || "no-reply@theotimus.com.br",
     to: email,
     subject: "Pedido confirmado - Theotimus",
     text: `Recebemos seu pedido!\n\nItens:\n${itemsText}\n\nObrigado pela compra.`,
   });
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error("Timeout ao enviar e-mail.")), 12000);
+  });
+  await Promise.race([mailPromise, timeoutPromise]);
 };
 
   const updateStockFromItems = (items) => {
@@ -301,6 +308,10 @@ app.post("/api/quote", async (req, res) => {
 
 app.post("/create-checkout-session", async (req, res) => {
   try {
+    console.log("Checkout request received", {
+      itemsCount: Array.isArray(req.body.items) ? req.body.items.length : 0,
+      hasEmail: Boolean(req.body.email),
+    });
     const { lineItems, shipping, discount, coupon } = await computeOrder({
       items: req.body.items,
       cep: req.body.cep,
@@ -367,6 +378,7 @@ app.post("/create-checkout-session", async (req, res) => {
     const session = await stripe.checkout.sessions.create(sessionConfig);
     return res.json({ url: session.url });
   } catch (error) {
+    console.error("Checkout error:", error);
     return res.status(500).json({ error: error.message || "Erro no checkout." });
   }
 });

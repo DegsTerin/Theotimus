@@ -210,7 +210,7 @@ checkoutButton?.addEventListener("click", () => {
     return;
   }
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   checkoutButton.disabled = true;
   checkoutButton.textContent = "Processando...";
   fetch("/create-checkout-session", {
