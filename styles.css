@@ -59,6 +59,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   padding: 24px 8vw;
   background: rgba(250, 247, 242, 0.82);
   backdrop-filter: blur(12px);
@@ -111,6 +112,10 @@ body {
 .site-nav {
   display: flex;
   gap: 28px;
+  flex: 1 1 auto;
+  justify-content: center;
+  margin: 0 12px;
+  flex-wrap: wrap;
 }
 
 .site-nav a {
@@ -124,6 +129,8 @@ body {
 .header-actions {
   display: flex;
   gap: 12px;
+  align-items: center;
+  margin-left: auto;
 }
 
 .locale-controls {
@@ -137,9 +144,10 @@ body {
   background: #f4eee7;
   border: 1px solid rgba(124, 20, 20, 0.2);
   color: #3a2520;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 999px;
   font-size: 12px;
+  min-width: 76px;
 }
 
 .menu-button {
@@ -826,6 +834,33 @@ body {
 
   .site-nav.open {
     display: flex;
+  }
+}
+
+@media (max-width: 1100px) {
+  .site-header {
+    padding: 20px 6vw;
+  }
+
+  .site-nav {
+    gap: 18px;
+  }
+
+  .header-actions {
+    gap: 10px;
+  }
+
+  .header-actions .primary-button,
+  .header-actions .secondary-button,
+  .header-actions .ghost-button {
+    padding: 10px 18px;
+    font-size: 11px;
+  }
+
+  .locale-select,
+  .currency-select {
+    padding: 6px 10px;
+    min-width: 70px;
   }
 }
 
