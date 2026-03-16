@@ -106,5 +106,28 @@
         "stock": 7
       }
     ]
+  },
+  {
+    "id": "marcador",
+    "name": "Marcador de Biblia",
+    "description": "Brinde para leitura diaria e estudos.",
+    "variants": [
+      {
+        "id": "marcador-papel-azul",
+        "size": "Unico",
+        "color": "Azul",
+        "material": "Papel",
+        "price": 0,
+        "stock": 30
+      },
+      {
+        "id": "marcador-papel-vinho",
+        "size": "Unico",
+        "color": "Vinho",
+        "material": "Papel",
+        "price": 0,
+        "stock": 30
+      }
+    ]
   }
 ]
