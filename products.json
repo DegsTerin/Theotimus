@@ -117,7 +117,7 @@
         "size": "Unico",
         "color": "Azul",
         "material": "Papel",
-        "price": 0.01,
+        "price": 0.5,
         "stock": 30
       },
       {
@@ -125,7 +125,7 @@
         "size": "Unico",
         "color": "Vinho",
         "material": "Papel",
-        "price": 0.01,
+        "price": 0.5,
         "stock": 30
       }
     ]
