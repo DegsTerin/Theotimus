@@ -18,6 +18,8 @@ const cepInput = document.querySelector("[data-cep-input]");
 const emailInput = document.querySelector("[data-email-input]");
 const couponInput = document.querySelector("[data-coupon-input]");
 const quoteButton = document.querySelector("[data-quote]");
+const localeSelect = document.querySelector("[data-locale-select]");
+const currencySelect = document.querySelector("[data-currency-select]");
 
 const productsCache = new Map();
 let lastQuote = { shipping: 0, discount: 0 };
@@ -29,17 +31,153 @@ if (menuButton && siteNav) {
   });
 }
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
+const pageRoot = document.querySelector(".page");
+const fxRates = {
+  BRL: 1,
+  USD: Number(pageRoot?.dataset.fxUsd || 0.2),
+  EUR: Number(pageRoot?.dataset.fxEur || 0.18),
+  GBP: Number(pageRoot?.dataset.fxGbp || 0.16),
+};
+
+const locales = {
+  "pt-BR": {
+    nav_collection: "Coleção",
+    nav_highlights: "Destaques",
+    nav_gifts: "Presentes",
+    nav_contact: "Contato",
+    btn_login: "Entrar",
+    btn_cart: "Carrinho",
+    btn_buy_now: "Comprar agora",
+    hero_eyebrow: "Tradição, beleza e espiritualidade",
+    hero_title: "Artigos religiosos que inspiram a sua fé, todos os dias.",
+    hero_text:
+      "Curadoria especial de terços, imagens sacras, livros e acessórios. Design contemporâneo com respeito à tradição.",
+    btn_explore: "Explorar coleção",
+    btn_news: "Ver novidades",
+    badge_shipping_title: "Frete rápido",
+    badge_shipping_sub: "para todo o Brasil",
+    badge_installments_title: "Parcelamento",
+    badge_installments_sub: "em até 6x sem juros",
+    badge_warranty_title: "Garantia",
+    badge_warranty_sub: "de troca em 7 dias",
+    cart_title: "Seu carrinho",
+    cart_subtitle: "Revise seus itens antes de finalizar.",
+    btn_close: "Fechar",
+    label_cep: "CEP para entrega",
+    placeholder_cep: "00000-000",
+    label_email: "E-mail para confirmacao",
+    placeholder_email: "seuemail@exemplo.com",
+    label_coupon: "Cupom de desconto",
+    placeholder_coupon: "EX: BEMVINDO10",
+    btn_quote: "Calcular frete e cupom",
+    cart_note: "Preços exibidos podem variar. Conversão final no checkout do Stripe.",
+    label_subtotal: "Subtotal",
+    label_shipping: "Frete",
+    label_discount: "Desconto",
+    label_total: "Total",
+    btn_checkout: "Finalizar compra",
+    modal_title: "Aviso",
+    empty_cart: "Seu carrinho está vazio.",
+    remove: "Remover",
+    processing: "Processando...",
+    checkout_failed: "Falha ao iniciar o checkout.",
+    checkout_timeout: "Tempo limite ao iniciar o checkout.",
+    variant_required: "Selecione uma variacao.",
+    variant_invalid: "Variacao invalida.",
+    stock_empty: "Sem estoque.",
+    stock_limited: "Sem estoque suficiente para essa variacao.",
+    variant_unavailable: "Variacao indisponivel.",
+    fetch_failed: "Falha ao carregar produtos.",
+  },
+  "en-GB": {
+    nav_collection: "Collection",
+    nav_highlights: "Highlights",
+    nav_gifts: "Gifts",
+    nav_contact: "Contact",
+    btn_login: "Sign in",
+    btn_cart: "Cart",
+    btn_buy_now: "Shop now",
+    hero_eyebrow: "Tradition, beauty and spirituality",
+    hero_title: "Religious goods that inspire your faith, every day.",
+    hero_text:
+      "Curated rosaries, sacred art, books and accessories. Contemporary design with respect for tradition.",
+    btn_explore: "Explore collection",
+    btn_news: "See new arrivals",
+    badge_shipping_title: "Fast shipping",
+    badge_shipping_sub: "across Brazil",
+    badge_installments_title: "Installments",
+    badge_installments_sub: "up to 6x interest-free",
+    badge_warranty_title: "Guarantee",
+    badge_warranty_sub: "7-day exchange",
+    cart_title: "Your cart",
+    cart_subtitle: "Review your items before checkout.",
+    btn_close: "Close",
+    label_cep: "Postal code",
+    placeholder_cep: "00000-000",
+    label_email: "Confirmation email",
+    placeholder_email: "you@example.com",
+    label_coupon: "Discount code",
+    placeholder_coupon: "EX: BEMVINDO10",
+    btn_quote: "Calculate shipping and discount",
+    cart_note: "Displayed prices may vary. Final conversion at Stripe checkout.",
+    label_subtotal: "Subtotal",
+    label_shipping: "Shipping",
+    label_discount: "Discount",
+    label_total: "Total",
+    btn_checkout: "Checkout",
+    modal_title: "Notice",
+    empty_cart: "Your cart is empty.",
+    remove: "Remove",
+    processing: "Processing...",
+    checkout_failed: "Failed to start checkout.",
+    checkout_timeout: "Checkout timed out.",
+    variant_required: "Please select a variant.",
+    variant_invalid: "Invalid variant.",
+    stock_empty: "Out of stock.",
+    stock_limited: "Not enough stock for this variant.",
+    variant_unavailable: "Variant unavailable.",
+    fetch_failed: "Failed to load products.",
+  },
+};
+
+const savedLocale = localStorage.getItem("theotimus_locale") || "pt-BR";
+const savedCurrency = localStorage.getItem("theotimus_currency") || "BRL";
+let currentLocale = locales[savedLocale] ? savedLocale : "pt-BR";
+let currentCurrency = fxRates[savedCurrency] ? savedCurrency : "BRL";
+
+const updateLocaleText = () => {
+  const dict = locales[currentLocale];
+  document.documentElement.lang = currentLocale;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (key && dict[key]) {
+      el.textContent = dict[key];
+    }
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-placeholder");
+    if (key && dict[key]) {
+      el.setAttribute("placeholder", dict[key]);
+    }
+  });
+};
+
+const currencyFormatterFor = (currency) =>
+  new Intl.NumberFormat(currentLocale, {
+    style: "currency",
+    currency,
+  });
 
 const rawCart = JSON.parse(localStorage.getItem("theotimus_cart") || "[]");
 const cart = Array.isArray(rawCart)
   ? rawCart.filter((item) => item && item.productId && item.variantId)
   : [];
 
-const formatCurrency = (value) => currencyFormatter.format(value);
+const formatCurrency = (value) => {
+  const rate = fxRates[currentCurrency] || 1;
+  const formatter = currencyFormatterFor(currentCurrency);
+  return formatter.format(value * rate);
+};
 
 const persistCart = () => {
   localStorage.setItem("theotimus_cart", JSON.stringify(cart));
@@ -64,13 +202,13 @@ const updateCartUI = () => {
         <span>${item.quantity}x</span>
         <strong>${currencyFormatter.format(item.price * item.quantity)}</strong>
       </div>
-      <button type="button" data-remove="${index}">Remover</button>
+      <button type="button" data-remove="${index}">${locales[currentLocale].remove}</button>
     `;
     cartItemsEl.appendChild(itemEl);
   });
 
   if (cart.length === 0) {
-    cartItemsEl.innerHTML = "<p>Seu carrinho está vazio.</p>";
+    cartItemsEl.innerHTML = `<p>${locales[currentLocale].empty_cart}</p>`;
   }
 
   cartSubtotalEl.textContent = formatCurrency(total);
@@ -147,12 +285,12 @@ document.querySelectorAll(".add-to-cart").forEach((button) => {
     const product = productsCache.get(productId);
     const variantId = button.getAttribute("data-variant-id");
     if (!product || !variantId) {
-      showModal("Selecione uma variacao.");
+      showModal(locales[currentLocale].variant_required);
       return;
     }
     const variant = product.variants.find((item) => item.id === variantId);
     if (!variant) {
-      showModal("Variacao invalida.");
+      showModal(locales[currentLocale].variant_invalid);
       return;
     }
 
@@ -161,7 +299,7 @@ document.querySelectorAll(".add-to-cart").forEach((button) => {
     );
     const currentQty = existing ? existing.quantity : 0;
     if (currentQty + 1 > variant.stock) {
-      showModal("Sem estoque suficiente para essa variacao.");
+      showModal(locales[currentLocale].stock_limited);
       return;
     }
 
@@ -206,13 +344,13 @@ document.querySelector(".cart-close")?.addEventListener("click", closeCart);
 
 checkoutButton?.addEventListener("click", () => {
   if (cart.length === 0) {
-    showModal("Seu carrinho está vazio.");
+    showModal(locales[currentLocale].empty_cart);
     return;
   }
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
   checkoutButton.disabled = true;
-  checkoutButton.textContent = "Processando...";
+  checkoutButton.textContent = locales[currentLocale].processing;
   fetch("/create-checkout-session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -221,6 +359,8 @@ checkoutButton?.addEventListener("click", () => {
       cep: cepInput?.value || "",
       coupon: couponInput?.value || "",
       email: emailInput?.value || "",
+      locale: currentLocale,
+      currency: currentCurrency,
     }),
     signal: controller.signal,
   })
@@ -228,26 +368,26 @@ checkoutButton?.addEventListener("click", () => {
       clearTimeout(timeoutId);
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error || "Falha ao iniciar o checkout.");
+        throw new Error(payload.error || locales[currentLocale].checkout_failed);
       }
       return response.json();
     })
     .then((data) => {
       if (!data.url) {
-        throw new Error("Checkout nao retornou URL.");
+        throw new Error(locales[currentLocale].checkout_failed);
       }
       window.location.href = data.url;
     })
     .catch((error) => {
       const message =
         error.name === "AbortError"
-          ? "Tempo limite ao iniciar o checkout."
-          : error.message || "Falha ao iniciar o checkout.";
+          ? locales[currentLocale].checkout_timeout
+          : error.message || locales[currentLocale].checkout_failed;
       showModal(message);
     })
     .finally(() => {
       checkoutButton.disabled = false;
-      checkoutButton.textContent = "Finalizar compra";
+      checkoutButton.textContent = locales[currentLocale].btn_checkout;
     });
 });
 
@@ -315,7 +455,7 @@ const renderVariantSelectors = (product) => {
 
     if (!variant) {
       button.disabled = true;
-      stockEl.textContent = "Variacao indisponivel.";
+      stockEl.textContent = locales[currentLocale].variant_unavailable;
       return;
     }
 
@@ -324,10 +464,10 @@ const renderVariantSelectors = (product) => {
 
     if (variant.stock <= 0) {
       button.disabled = true;
-      stockEl.textContent = "Sem estoque.";
+      stockEl.textContent = locales[currentLocale].stock_empty;
     } else {
       button.disabled = false;
-      stockEl.textContent = `Estoque: ${variant.stock}`;
+      stockEl.textContent = currentLocale === "en-GB" ? `Stock: ${variant.stock}` : `Estoque: ${variant.stock}`;
     }
   };
 
@@ -347,5 +487,31 @@ fetch("/api/products")
     });
   })
   .catch(() => {
-    showModal("Falha ao carregar produtos.");
+    showModal(locales[currentLocale].fetch_failed);
   });
+
+const applySettings = () => {
+  updateLocaleText();
+  updateCartUI();
+  productsCache.forEach((product) => renderVariantSelectors(product));
+};
+
+localeSelect?.addEventListener("change", () => {
+  currentLocale = localeSelect.value;
+  localStorage.setItem("theotimus_locale", currentLocale);
+  applySettings();
+});
+
+currencySelect?.addEventListener("change", () => {
+  currentCurrency = currencySelect.value;
+  localStorage.setItem("theotimus_currency", currentCurrency);
+  applySettings();
+});
+
+if (localeSelect) {
+  localeSelect.value = currentLocale;
+}
+if (currencySelect) {
+  currencySelect.value = currentCurrency;
+}
+updateLocaleText();

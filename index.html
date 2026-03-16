@@ -17,7 +17,7 @@
     />
   </head>
   <body>
-    <div class="page">
+    <div class="page" data-fx-usd="0.20" data-fx-eur="0.18" data-fx-gbp="0.16">
       <header class="site-header">
         <a class="logo" href="#inicio" aria-label="Theotimus">
           <span class="logo-mark" aria-hidden="true">
@@ -33,50 +33,62 @@
           </span>
         </a>
         <nav class="site-nav" aria-label="Principal">
-          <a href="#colecao">Coleção</a>
-          <a href="#destaques">Destaques</a>
-          <a href="#presentes">Presentes</a>
-          <a href="#contato">Contato</a>
+          <a href="#colecao" data-i18n="nav_collection">Coleção</a>
+          <a href="#destaques" data-i18n="nav_highlights">Destaques</a>
+          <a href="#presentes" data-i18n="nav_gifts">Presentes</a>
+          <a href="#contato" data-i18n="nav_contact">Contato</a>
         </nav>
         <button class="menu-button" type="button" aria-label="Abrir menu">
           <span></span>
           <span></span>
         </button>
         <div class="header-actions">
-          <button class="ghost-button" type="button">Entrar</button>
+          <div class="locale-controls">
+            <select class="locale-select" aria-label="Idioma" data-locale-select>
+              <option value="pt-BR">PT-BR</option>
+              <option value="en-GB">EN-GB</option>
+            </select>
+            <select class="currency-select" aria-label="Moeda" data-currency-select>
+              <option value="BRL">BRL</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+          </div>
+          <button class="ghost-button" type="button" data-i18n="btn_login">Entrar</button>
           <button class="cart-button" type="button" aria-label="Abrir carrinho">
-            Carrinho
+            <span data-i18n="btn_cart">Carrinho</span>
             <span class="cart-count" aria-live="polite">0</span>
           </button>
-          <button class="primary-button" type="button">Comprar agora</button>
+          <button class="primary-button" type="button" data-i18n="btn_buy_now">Comprar agora</button>
         </div>
       </header>
 
       <main>
         <section id="inicio" class="hero">
           <div class="hero-content">
-            <div class="hero-eyebrow">Tradição, beleza e espiritualidade</div>
-            <h1>Artigos religiosos que inspiram a sua fé, todos os dias.</h1>
-            <p>
+            <div class="hero-eyebrow" data-i18n="hero_eyebrow">Tradição, beleza e espiritualidade</div>
+            <h1 data-i18n="hero_title">Artigos religiosos que inspiram a sua fé, todos os dias.</h1>
+            <p data-i18n="hero_text">
               Curadoria especial de terços, imagens sacras, livros e acessórios.
               Design contemporâneo com respeito à tradição.
             </p>
             <div class="hero-actions">
-              <button class="primary-button" type="button">Explorar coleção</button>
-              <button class="secondary-button" type="button">Ver novidades</button>
+              <button class="primary-button" type="button" data-i18n="btn_explore">Explorar coleção</button>
+              <button class="secondary-button" type="button" data-i18n="btn_news">Ver novidades</button>
             </div>
             <div class="hero-badges">
               <div>
-                <strong>Frete rápido</strong>
-                <span>para todo o Brasil</span>
+                <strong data-i18n="badge_shipping_title">Frete rápido</strong>
+                <span data-i18n="badge_shipping_sub">para todo o Brasil</span>
               </div>
               <div>
-                <strong>Parcelamento</strong>
-                <span>em até 6x sem juros</span>
+                <strong data-i18n="badge_installments_title">Parcelamento</strong>
+                <span data-i18n="badge_installments_sub">em até 6x sem juros</span>
               </div>
               <div>
-                <strong>Garantia</strong>
-                <span>de troca em 7 dias</span>
+                <strong data-i18n="badge_warranty_title">Garantia</strong>
+                <span data-i18n="badge_warranty_sub">de troca em 7 dias</span>
               </div>
             </div>
           </div>
@@ -343,60 +355,63 @@
 
     <div class="cart-overlay" data-cart-overlay></div>
     <aside class="cart-drawer" aria-label="Carrinho de compras" aria-hidden="true">
-      <div class="cart-header">
+        <div class="cart-header">
         <div>
-          <h3>Seu carrinho</h3>
-          <p>Revise seus itens antes de finalizar.</p>
+          <h3 data-i18n="cart_title">Seu carrinho</h3>
+          <p data-i18n="cart_subtitle">Revise seus itens antes de finalizar.</p>
         </div>
-        <button class="ghost-button cart-close" type="button">Fechar</button>
+        <button class="ghost-button cart-close" type="button" data-i18n="btn_close">Fechar</button>
       </div>
       <div class="cart-items" data-cart-items></div>
       <div class="cart-inputs">
         <label>
-          CEP para entrega
-          <input type="text" placeholder="00000-000" data-cep-input />
+          <span data-i18n="label_cep">CEP para entrega</span>
+          <input type="text" placeholder="00000-000" data-cep-input data-i18n-placeholder="placeholder_cep" />
         </label>
         <label>
-          E-mail para confirmacao
-          <input type="email" placeholder="seuemail@exemplo.com" data-email-input />
+          <span data-i18n="label_email">E-mail para confirmacao</span>
+          <input type="email" placeholder="seuemail@exemplo.com" data-email-input data-i18n-placeholder="placeholder_email" />
         </label>
         <label>
-          Cupom de desconto
-          <input type="text" placeholder="EX: BEMVINDO10" data-coupon-input />
+          <span data-i18n="label_coupon">Cupom de desconto</span>
+          <input type="text" placeholder="EX: BEMVINDO10" data-coupon-input data-i18n-placeholder="placeholder_coupon" />
         </label>
-        <button class="secondary-button small" type="button" data-quote>
+        <button class="secondary-button small" type="button" data-quote data-i18n="btn_quote">
           Calcular frete e cupom
         </button>
+        <div class="cart-note" data-i18n="cart_note">
+          Preços exibidos podem variar. Conversão final no checkout do Stripe.
+        </div>
       </div>
       <div class="cart-footer">
         <div class="cart-totals">
           <div>
-            <span>Subtotal</span>
+            <span data-i18n="label_subtotal">Subtotal</span>
             <strong data-cart-subtotal>R$ 0,00</strong>
           </div>
           <div>
-            <span>Frete</span>
+            <span data-i18n="label_shipping">Frete</span>
             <strong data-cart-shipping>R$ 0,00</strong>
           </div>
           <div>
-            <span>Desconto</span>
+            <span data-i18n="label_discount">Desconto</span>
             <strong data-cart-discount>R$ 0,00</strong>
           </div>
           <div class="cart-total">
-            <span>Total</span>
+            <span data-i18n="label_total">Total</span>
             <strong data-cart-total>R$ 0,00</strong>
           </div>
         </div>
-        <button class="primary-button" type="button" data-checkout>
+        <button class="primary-button" type="button" data-checkout data-i18n="btn_checkout">
           Finalizar compra
         </button>
       </div>
     </aside>
     <div class="modal-overlay" data-modal-overlay></div>
     <div class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-      <div class="modal-header">Aviso</div>
-      <p data-modal-message>Não foi possível iniciar o pagamento.</p>
-      <div class="modal-actions">
+    <div class="modal-header" data-i18n="modal_title">Aviso</div>
+    <p data-modal-message>Não foi possível iniciar o pagamento.</p>
+    <div class="modal-actions">
         <button class="primary-button small" type="button" data-modal-close>OK</button>
       </div>
     </div>

@@ -126,6 +126,22 @@ body {
   gap: 12px;
 }
 
+.locale-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.locale-select,
+.currency-select {
+  background: #f4eee7;
+  border: 1px solid rgba(124, 20, 20, 0.2);
+  color: #3a2520;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
 .menu-button {
   display: none;
   background: transparent;
@@ -708,6 +724,12 @@ body {
   display: grid;
   gap: 6px;
   color: var(--muted);
+}
+
+.cart-note {
+  font-size: 11px;
+  color: #7a6b63;
+  line-height: 1.4;
 }
 
 .cart-inputs input {

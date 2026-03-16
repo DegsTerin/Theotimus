@@ -642,14 +642,21 @@ app.post("/create-checkout-session", async (req, res) => {
     });
 
     const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
+    const allowedLocales = ["pt-BR", "en-GB"];
+    const locale = allowedLocales.includes(req.body.locale) ? req.body.locale : "auto";
+    const countriesEnv = process.env.SHIPPING_COUNTRIES || "BR,US,GB,IE,DE,FR,ES,IT,NL,BE,PT,CA,AU,JP";
+    const allowedCountries = countriesEnv.split(",").map((c) => c.trim()).filter(Boolean);
+
     const sessionConfig = {
       mode: "payment",
       line_items: lineItems,
       success_url: `${baseUrl}/success.html`,
       cancel_url: `${baseUrl}/cancel.html`,
       customer_email: req.body.email || undefined,
+      locale,
+      automatic_payment_methods: { enabled: true },
       shipping_address_collection: {
-        allowed_countries: ["BR"],
+        allowed_countries: allowedCountries,
       },
       metadata: {
         items: JSON.stringify(
