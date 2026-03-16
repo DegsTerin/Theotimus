@@ -149,72 +149,7 @@ const computeOrder = async ({ items, cep, couponCode }) => {
   return { subtotal, lineItems, shipping, discount, coupon };
 };
 
-const getEmailTransport = () => {
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!host || !user || !pass) {
-    return null;
-  }
-  return nodemailer.createTransport({
-    host,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: false,
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-    auth: { user, pass },
-  });
-};
-
-const buildItemsSummary = (items) =>
-  items
-    .map((item) => {
-      const entry = getProductVariant(item.productId, item.variantId);
-      if (!entry) {
-        return null;
-      }
-      return `${item.quantity}x ${entry.product.name} (${entry.variant.size}, ${entry.variant.color}, ${entry.variant.material})`;
-    })
-    .filter(Boolean)
-    .join("\n");
-
-const sendOrderEmail = async (email, itemsText) => {
-  const resendKey = process.env.RESEND_API_KEY;
-  const fromAddress = process.env.SMTP_FROM || process.env.RESEND_FROM || "no-reply@theotimus.com.br";
-  const payload = {
-    from: fromAddress,
-    to: [email],
-    subject: "Pedido confirmado - Theotimus",
-    text: `Recebemos seu pedido!\n\nItens:\n${itemsText}\n\nObrigado pela compra.`,
-  };
-
-  if (resendKey) {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) {
-      const detail = await response.text();
-      throw new Error(`Erro Resend: ${detail || response.status}`);
-    }
-    return;
-  }
-
-  const transport = getEmailTransport();
-  if (!transport) {
-    throw new Error("SMTP nao configurado.");
-  }
-  const mailPromise = transport.sendMail(payload);
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error("Timeout ao enviar e-mail.")), 12000);
-  });
-  await Promise.race([mailPromise, timeoutPromise]);
-};
+const emailDisabled = true;
 
   const updateStockFromItems = (items) => {
     if (!Array.isArray(items)) {
@@ -262,31 +197,8 @@ app.post(
           console.log("Falha ao atualizar estoque.");
         }
       }
-      const expanded = await stripe.checkout.sessions.retrieve(session.id, {
-        expand: ["line_items"],
-      });
-      const email = expanded.customer_details?.email || expanded.customer_email;
-      if (email) {
-        const transport = getEmailTransport();
-        const items = expanded.line_items?.data || [];
-        const lines = items
-          .map((item) => `${item.quantity}x ${item.description} - R$ ${(item.amount_total / 100).toFixed(2)}`)
-          .join("\n");
-
-        if (transport) {
-          try {
-            await transport.sendMail({
-              from: process.env.SMTP_FROM || "no-reply@theotimus.com.br",
-              to: email,
-              subject: "Pedido confirmado - Theotimus",
-              text: `Recebemos seu pedido!\n\nItens:\n${lines}\n\nObrigado pela compra.`,
-            });
-          } catch (error) {
-            console.error("Falha ao enviar e-mail (webhook):", error);
-          }
-        } else {
-          console.log("Email configurado nao encontrado. Pedido:", email, lines);
-        }
+      if (emailDisabled) {
+        console.log("Email desativado. Use recibos do Stripe.");
       }
     }
 
