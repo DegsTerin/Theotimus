@@ -816,9 +816,35 @@ body {
   .header-actions {
     width: 100%;
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .highlight-card.offset {
     transform: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .site-header {
+    padding: 18px 5vw;
+  }
+
+  .logo-title {
+    letter-spacing: 0.2em;
+    font-size: 18px;
+  }
+
+  .header-actions {
+    gap: 10px;
+  }
+
+  .header-actions button,
+  .header-actions .cart-button {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .header-actions .primary-button {
+    flex-basis: 100%;
   }
 }
