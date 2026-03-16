@@ -5,6 +5,7 @@ const https = require("https");
 const express = require("express");
 const Stripe = require("stripe");
 const nodemailer = require("nodemailer");
+const { Pool } = require("pg");
 
 const app = express();
 const port = process.env.PORT || 4242;
@@ -22,6 +23,128 @@ const productsPath = path.join(__dirname, "products.json");
 const ordersPath = path.join(__dirname, "orders.json");
 let productsCache = JSON.parse(fs.readFileSync(productsPath, "utf-8"));
 const couponCache = new Map();
+
+const dbUrl = process.env.DATABASE_URL || "";
+const dbEnabled = Boolean(dbUrl);
+const pool = dbEnabled
+  ? new Pool({
+      connectionString: dbUrl,
+      ssl: dbUrl.includes("render.com")
+        ? { rejectUnauthorized: false }
+        : false,
+    })
+  : null;
+
+const initDb = async () => {
+  if (!dbEnabled) {
+    return;
+  }
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id TEXT PRIMARY KEY,
+      amount NUMERIC NOT NULL,
+      currency TEXT,
+      email TEXT,
+      name TEXT,
+      phone TEXT,
+      address JSONB,
+      items JSONB,
+      created_at TIMESTAMPTZ NOT NULL,
+      status TEXT NOT NULL
+    );
+  `);
+};
+
+const saveOrder = async (order) => {
+  if (!dbEnabled) {
+    let orders = [];
+    if (fs.existsSync(ordersPath)) {
+      try {
+        orders = JSON.parse(fs.readFileSync(ordersPath, "utf-8"));
+      } catch (error) {
+        orders = [];
+      }
+    }
+    orders.unshift(order);
+    fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 2));
+    return;
+  }
+  await pool.query(
+    `
+    INSERT INTO orders (id, amount, currency, email, name, phone, address, items, created_at, status)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+    ON CONFLICT (id) DO UPDATE SET
+      amount = EXCLUDED.amount,
+      currency = EXCLUDED.currency,
+      email = EXCLUDED.email,
+      name = EXCLUDED.name,
+      phone = EXCLUDED.phone,
+      address = EXCLUDED.address,
+      items = EXCLUDED.items,
+      created_at = EXCLUDED.created_at,
+      status = EXCLUDED.status
+    `,
+    [
+      order.id,
+      order.amount,
+      order.currency,
+      order.email,
+      order.name,
+      order.phone,
+      order.address,
+      JSON.stringify(order.items || []),
+      order.createdAt,
+      order.status || "novo",
+    ]
+  );
+};
+
+const listOrders = async () => {
+  if (!dbEnabled) {
+    if (!fs.existsSync(ordersPath)) {
+      return [];
+    }
+    try {
+      return JSON.parse(fs.readFileSync(ordersPath, "utf-8"));
+    } catch (error) {
+      return [];
+    }
+  }
+  const result = await pool.query(
+    "SELECT id, amount, currency, email, name, phone, address, items, created_at, status FROM orders ORDER BY created_at DESC"
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    amount: Number(row.amount),
+    currency: row.currency,
+    email: row.email,
+    name: row.name,
+    phone: row.phone,
+    address: row.address,
+    items: Array.isArray(row.items) ? row.items : row.items || [],
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+    status: row.status,
+  }));
+};
+
+const updateOrderStatus = async (id, status) => {
+  if (!dbEnabled) {
+    let orders = [];
+    if (fs.existsSync(ordersPath)) {
+      try {
+        orders = JSON.parse(fs.readFileSync(ordersPath, "utf-8"));
+      } catch (error) {
+        orders = [];
+      }
+    }
+    const updated = orders.map((order) =>
+      order.id === id ? { ...order, status } : order
+    );
+    fs.writeFileSync(ordersPath, JSON.stringify(updated, null, 2));
+    return;
+  }
+  await pool.query("UPDATE orders SET status = $1 WHERE id = $2", [status, id]);
+};
 
 const coupons = {
   BEMVINDO10: { type: "percent", value: 10 },
@@ -216,17 +339,9 @@ app.post(
             amount: item.amount_total ? item.amount_total / 100 : 0,
           })),
           createdAt: new Date().toISOString(),
+          status: "novo",
         };
-        let orders = [];
-        if (fs.existsSync(ordersPath)) {
-          try {
-            orders = JSON.parse(fs.readFileSync(ordersPath, "utf-8"));
-          } catch (error) {
-            orders = [];
-          }
-        }
-        orders.unshift(order);
-        fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 2));
+        await saveOrder(order);
       } catch (error) {
         console.error("Falha ao registrar pedido:", error);
       }
@@ -324,35 +439,79 @@ app.post("/admin/logout", (req, res) => {
   res.redirect("/admin/login");
 });
 
-app.get("/admin/orders", requireAdmin, (req, res) => {
-  let orders = [];
-  if (fs.existsSync(ordersPath)) {
-    try {
-      orders = JSON.parse(fs.readFileSync(ordersPath, "utf-8"));
-    } catch (error) {
-      orders = [];
-    }
+app.post("/admin/orders/update", requireAdmin, express.urlencoded({ extended: false }), (req, res) => {
+  const { id, status } = req.body;
+  if (!id || !status) {
+    return res.redirect("/admin/orders");
   }
+  const allowed = ["novo", "pagamento", "separacao", "enviado", "entregue", "problema", "cancelado"];
+  const safeStatus = allowed.includes(status) ? status : "novo";
+  updateOrderStatus(id, safeStatus).catch(() => {});
+  return res.redirect("/admin/orders");
+});
 
-  const rows = orders
-    .map((order) => {
-      const address = order.address
-        ? `${order.address.line1 || ""} ${order.address.line2 || ""}, ${order.address.city || ""} - ${
-            order.address.state || ""
-          }, ${order.address.postal_code || ""}`
-        : "Sem endereco";
-      const items = order.items
-        .map((item) => `${item.quantity}x ${item.description} (R$ ${item.amount.toFixed(2)})`)
-        .join("<br/>");
+app.post("/admin/orders/update-json", requireAdmin, express.json(), (req, res) => {
+  const { id, status } = req.body || {};
+  if (!id || !status) {
+    return res.status(400).json({ ok: false });
+  }
+  const allowed = ["novo", "pagamento", "separacao", "enviado", "entregue", "problema", "cancelado"];
+  const safeStatus = allowed.includes(status) ? status : "novo";
+  updateOrderStatus(id, safeStatus)
+    .then(() => res.json({ ok: true }))
+    .catch(() => res.status(500).json({ ok: false }));
+});
+
+app.get("/admin/orders", requireAdmin, (req, res) => {
+  const renderOrders = (orders) => {
+
+  const statusColumns = [
+    { key: "novo", label: "Novo" },
+    { key: "pagamento", label: "Pagamento confirmado" },
+    { key: "separacao", label: "Separacao" },
+    { key: "enviado", label: "Enviado" },
+    { key: "entregue", label: "Entregue" },
+    { key: "problema", label: "Problema" },
+    { key: "cancelado", label: "Cancelado" },
+  ];
+
+  const buildCard = (order) => {
+    const address = order.address
+      ? `${order.address.line1 || ""} ${order.address.line2 || ""}, ${order.address.city || ""} - ${
+          order.address.state || ""
+        }, ${order.address.postal_code || ""}`
+      : "Sem endereco";
+    const items = order.items
+      .map((item) => `${item.quantity}x ${item.description} (R$ ${item.amount.toFixed(2)})`)
+      .join("<br/>");
+    return `
+      <div class="card" draggable="true" data-order-id="${order.id}">
+        <div class="card-title">${order.name || "Cliente"} <span class="muted">(${order.email || "sem email"})</span></div>
+        <div class="muted">${order.createdAt}</div>
+        <div class="card-section"><strong>Endereco:</strong> ${address}</div>
+        <div class="card-section"><strong>Itens:</strong><br/>${items}</div>
+        <div class="card-section"><strong>Total:</strong> R$ ${order.amount.toFixed(2)}</div>
+        <div class="card-actions">
+          <button type="button" data-move="prev">Voltar</button>
+          <button type="button" data-move="next">Avancar</button>
+        </div>
+      </div>
+    `;
+  };
+
+  const boards = statusColumns
+    .map((col) => {
+      const colOrders = orders.filter((order) => (order.status || "novo") === col.key);
       return `
-        <tr>
-          <td>${order.id}</td>
-          <td>${order.createdAt}</td>
-          <td>${order.name || ""}<br/>${order.email || ""}</td>
-          <td>${address}</td>
-          <td>${items}</td>
-          <td>R$ ${order.amount.toFixed(2)}</td>
-        </tr>
+        <div class="column" data-status="${col.key}">
+          <div class="column-header">
+            <span>${col.label}</span>
+            <span class="count">${colOrders.length}</span>
+          </div>
+          <div class="column-body" data-status="${col.key}">
+            ${colOrders.map(buildCard).join("") || "<div class='empty'>Sem pedidos</div>"}
+          </div>
+        </div>
       `;
     })
     .join("");
@@ -365,23 +524,92 @@ app.get("/admin/orders", requireAdmin, (req, res) => {
           <button type="submit">Sair</button>
         </form>
       </div>
-      <table style="width: 100%; border-collapse: collapse; background:#fff;">
-        <thead>
-          <tr style="background:#7c1414; color:#fff;">
-            <th style="padding:12px; text-align:left;">ID</th>
-            <th style="padding:12px; text-align:left;">Data</th>
-            <th style="padding:12px; text-align:left;">Cliente</th>
-            <th style="padding:12px; text-align:left;">Endereco</th>
-            <th style="padding:12px; text-align:left;">Itens</th>
-            <th style="padding:12px; text-align:left;">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows || "<tr><td colspan='6' style='padding:12px;'>Nenhum pedido ainda.</td></tr>"}
-        </tbody>
-      </table>
+      <div style="margin: 12px 0 18px; display:flex; gap:12px; flex-wrap:wrap;">
+        <input id="orderFilter" type="text" placeholder="Buscar por cliente, email ou ID" style="padding:10px 12px; border-radius:10px; border:1px solid #ccc; min-width: 280px;" />
+      </div>
+      <div class="board">
+        ${boards}
+      </div>
+      <style>
+        .board { display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+        .column { background:#fff; border-radius:14px; padding:12px; min-height: 240px; border: 1px solid #eadfd6; }
+        .column-header { display:flex; justify-content: space-between; align-items:center; font-weight:700; margin-bottom:12px; color:#4a2a22; }
+        .count { background:#7c1414; color:#fff; font-size:12px; padding:2px 8px; border-radius:999px; }
+        .column-body { min-height: 160px; display:flex; flex-direction:column; gap:10px; }
+        .card { background:#fdf9f5; border-radius:12px; padding:10px; border:1px solid #eadfd6; cursor: grab; }
+        .card-title { font-weight:700; margin-bottom:4px; }
+        .card-section { margin-top:6px; font-size:13px; }
+        .card-actions { display:flex; gap:8px; margin-top:10px; }
+        .card-actions button { padding:6px 10px; border-radius:999px; border:1px solid #7c1414; background:#fff; color:#7c1414; cursor:pointer; font-size:12px; }
+        .muted { color:#7c6a62; font-size:12px; }
+        .empty { color:#9a8d84; font-size:12px; padding:8px; }
+        .column-body.drag-over { outline: 2px dashed #7c1414; outline-offset: 4px; }
+      </style>
+      <script>
+        const statusFlow = ["novo","pagamento","separacao","enviado","entregue","problema","cancelado"];
+        const filterInput = document.getElementById("orderFilter");
+        const cards = Array.from(document.querySelectorAll(".card"));
+        const columns = Array.from(document.querySelectorAll(".column-body"));
+
+        const updateStatus = async (id, status) => {
+          await fetch("/admin/orders/update-json", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, status }),
+          });
+          location.reload();
+        };
+
+        filterInput?.addEventListener("input", () => {
+          const query = filterInput.value.toLowerCase().trim();
+          cards.forEach((card) => {
+            const text = card.innerText.toLowerCase();
+            card.style.display = text.includes(query) ? "" : "none";
+          });
+        });
+
+        cards.forEach((card) => {
+          card.addEventListener("dragstart", (e) => {
+            e.dataTransfer.setData("text/plain", card.dataset.orderId);
+          });
+          card.querySelectorAll("[data-move]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const currentCol = card.closest(".column-body");
+              const currentStatus = currentCol?.dataset.status || "novo";
+              const index = statusFlow.indexOf(currentStatus);
+              const direction = btn.dataset.move === "next" ? 1 : -1;
+              const nextStatus = statusFlow[index + direction];
+              if (nextStatus) {
+                updateStatus(card.dataset.orderId, nextStatus);
+              }
+            });
+          });
+        });
+
+        columns.forEach((col) => {
+          col.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            col.classList.add("drag-over");
+          });
+          col.addEventListener("dragleave", () => col.classList.remove("drag-over"));
+          col.addEventListener("drop", (e) => {
+            e.preventDefault();
+            col.classList.remove("drag-over");
+            const id = e.dataTransfer.getData("text/plain");
+            const status = col.dataset.status;
+            if (id && status) {
+              updateStatus(id, status);
+            }
+          });
+        });
+      </script>
     `)
   );
+  };
+
+  listOrders()
+    .then(renderOrders)
+    .catch(() => renderOrders([]));
 });
 
 app.post("/api/quote", async (req, res) => {
@@ -473,4 +701,8 @@ app.post("/create-checkout-session", async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
+});
+
+initDb().catch((error) => {
+  console.error("Falha ao iniciar banco:", error);
 });
