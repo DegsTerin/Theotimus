@@ -274,12 +274,16 @@ app.post(
           .join("\n");
 
         if (transport) {
-          await transport.sendMail({
-            from: process.env.SMTP_FROM || "no-reply@theotimus.com.br",
-            to: email,
-            subject: "Pedido confirmado - Theotimus",
-            text: `Recebemos seu pedido!\n\nItens:\n${lines}\n\nObrigado pela compra.`,
-          });
+          try {
+            await transport.sendMail({
+              from: process.env.SMTP_FROM || "no-reply@theotimus.com.br",
+              to: email,
+              subject: "Pedido confirmado - Theotimus",
+              text: `Recebemos seu pedido!\n\nItens:\n${lines}\n\nObrigado pela compra.`,
+            });
+          } catch (error) {
+            console.error("Falha ao enviar e-mail (webhook):", error);
+          }
         } else {
           console.log("Email configurado nao encontrado. Pedido:", email, lines);
         }
