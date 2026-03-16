@@ -879,16 +879,24 @@ body {
   }
 
   .header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
   .locale-controls {
-    flex: 1 1 100%;
+    grid-column: 1 / -1;
   }
 
   .header-actions .ghost-button,
   .header-actions .cart-button,
   .header-actions .primary-button {
-    flex: 1 1 100%;
+    width: 100%;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .header-actions .primary-button {
+    padding: 0 12px;
   }
 }
