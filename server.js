@@ -192,16 +192,36 @@ const buildItemsSummary = (items) =>
     .join("\n");
 
 const sendOrderEmail = async (email, itemsText) => {
+  const resendKey = process.env.RESEND_API_KEY;
+  const fromAddress = process.env.SMTP_FROM || process.env.RESEND_FROM || "no-reply@theotimus.com.br";
+  const payload = {
+    from: fromAddress,
+    to: [email],
+    subject: "Pedido confirmado - Theotimus",
+    text: `Recebemos seu pedido!\n\nItens:\n${itemsText}\n\nObrigado pela compra.`,
+  };
+
+  if (resendKey) {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`Erro Resend: ${detail || response.status}`);
+    }
+    return;
+  }
+
   const transport = getEmailTransport();
   if (!transport) {
     throw new Error("SMTP nao configurado.");
   }
-  const mailPromise = transport.sendMail({
-    from: process.env.SMTP_FROM || "no-reply@theotimus.com.br",
-    to: email,
-    subject: "Pedido confirmado - Theotimus",
-    text: `Recebemos seu pedido!\n\nItens:\n${itemsText}\n\nObrigado pela compra.`,
-  });
+  const mailPromise = transport.sendMail(payload);
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(() => reject(new Error("Timeout ao enviar e-mail.")), 12000);
   });
