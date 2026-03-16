@@ -19,6 +19,7 @@ if (!stripeSecret) {
 const stripe = Stripe(stripeSecret);
 
 const productsPath = path.join(__dirname, "products.json");
+const ordersPath = path.join(__dirname, "orders.json");
 let productsCache = JSON.parse(fs.readFileSync(productsPath, "utf-8"));
 const couponCache = new Map();
 
@@ -197,6 +198,38 @@ app.post(
           console.log("Falha ao atualizar estoque.");
         }
       }
+      try {
+        const expanded = await stripe.checkout.sessions.retrieve(session.id, {
+          expand: ["line_items"],
+        });
+        const order = {
+          id: expanded.id,
+          amount: expanded.amount_total ? expanded.amount_total / 100 : 0,
+          currency: expanded.currency,
+          email: expanded.customer_details?.email || expanded.customer_email || null,
+          name: expanded.customer_details?.name || null,
+          phone: expanded.customer_details?.phone || null,
+          address: expanded.customer_details?.address || null,
+          items: (expanded.line_items?.data || []).map((item) => ({
+            description: item.description,
+            quantity: item.quantity,
+            amount: item.amount_total ? item.amount_total / 100 : 0,
+          })),
+          createdAt: new Date().toISOString(),
+        };
+        let orders = [];
+        if (fs.existsSync(ordersPath)) {
+          try {
+            orders = JSON.parse(fs.readFileSync(ordersPath, "utf-8"));
+          } catch (error) {
+            orders = [];
+          }
+        }
+        orders.unshift(order);
+        fs.writeFileSync(ordersPath, JSON.stringify(orders, null, 2));
+      } catch (error) {
+        console.error("Falha ao registrar pedido:", error);
+      }
       if (emailDisabled) {
         console.log("Email desativado. Use recibos do Stripe.");
       }
@@ -249,6 +282,9 @@ app.post("/create-checkout-session", async (req, res) => {
       success_url: `${baseUrl}/success.html`,
       cancel_url: `${baseUrl}/cancel.html`,
       customer_email: req.body.email || undefined,
+      shipping_address_collection: {
+        allowed_countries: ["BR"],
+      },
       metadata: {
         items: JSON.stringify(
           (req.body.items || []).map((item) => ({
