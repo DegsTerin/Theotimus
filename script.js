@@ -209,6 +209,10 @@ checkoutButton?.addEventListener("click", () => {
     showModal("Seu carrinho está vazio.");
     return;
   }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  checkoutButton.disabled = true;
+  checkoutButton.textContent = "Processando...";
   fetch("/create-checkout-session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -218,8 +222,10 @@ checkoutButton?.addEventListener("click", () => {
       coupon: couponInput?.value || "",
       email: emailInput?.value || "",
     }),
+    signal: controller.signal,
   })
     .then(async (response) => {
+      clearTimeout(timeoutId);
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
         throw new Error(payload.error || "Falha ao iniciar o checkout.");
@@ -233,7 +239,15 @@ checkoutButton?.addEventListener("click", () => {
       window.location.href = data.url;
     })
     .catch((error) => {
-      showModal(error.message || "Falha ao iniciar o checkout.");
+      const message =
+        error.name === "AbortError"
+          ? "Tempo limite ao iniciar o checkout."
+          : error.message || "Falha ao iniciar o checkout.";
+      showModal(message);
+    })
+    .finally(() => {
+      checkoutButton.disabled = false;
+      checkoutButton.textContent = "Finalizar compra";
     });
 });
 
