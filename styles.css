@@ -837,8 +837,23 @@ body {
 
   .header-actions {
     width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 10px;
+    align-items: center;
+  }
+
+  .header-actions button,
+  .header-actions .cart-button,
+  .header-actions .locale-select,
+  .header-actions .currency-select {
+    height: 38px;
+    width: 100%;
+  }
+
+  .locale-controls {
+    grid-column: span 2;
     justify-content: flex-start;
-    flex-wrap: wrap;
   }
 
   .highlight-card.offset {
@@ -857,16 +872,16 @@ body {
   }
 
   .header-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
-  .header-actions button,
-  .header-actions .cart-button {
-    flex: 1 1 auto;
-    min-width: 0;
+  .locale-controls {
+    grid-column: 1 / -1;
   }
 
+  .header-actions .cart-button,
   .header-actions .primary-button {
-    flex-basis: 100%;
+    grid-column: 1 / -1;
   }
 }
