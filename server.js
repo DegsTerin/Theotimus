@@ -247,6 +247,14 @@ app.get("/api/products", (req, res) => {
 });
 
 app.get("/admin/orders", (req, res) => {
+  const adminKey = process.env.ADMIN_KEY;
+  if (!adminKey) {
+    return res.status(403).send("ADMIN_KEY nao configurada.");
+  }
+  const provided = req.query.key;
+  if (provided !== adminKey) {
+    return res.status(401).send("Acesso negado.");
+  }
   let orders = [];
   if (fs.existsSync(ordersPath)) {
     try {
