@@ -112,7 +112,6 @@ const computeOrder = async ({ items, cep, couponCode }) => {
   }
 
   let subtotal = 0;
-  const freeItems = [];
   const lineItems = normalizedItems.map((item) => {
     const quantity = Number(item.quantity);
     if (!item.productId || !item.variantId || Number.isNaN(quantity)) {
@@ -126,15 +125,6 @@ const computeOrder = async ({ items, cep, couponCode }) => {
       throw new Error("Estoque insuficiente.");
     }
     const unitAmount = entry.variant.price;
-    if (unitAmount <= 0) {
-      freeItems.push({
-        productId: item.productId,
-        variantId: item.variantId,
-        quantity,
-        label: `${entry.product.name} (${entry.variant.size}, ${entry.variant.color}, ${entry.variant.material})`,
-      });
-      return null;
-    }
     subtotal += unitAmount * quantity;
     return {
       price_data: {
@@ -148,17 +138,15 @@ const computeOrder = async ({ items, cep, couponCode }) => {
     };
   });
 
-  const paidLineItems = lineItems.filter(Boolean);
   const normalizedCoupon = couponCode ? couponCode.toUpperCase() : "";
   const coupon = normalizedCoupon ? coupons[normalizedCoupon] : null;
   if (normalizedCoupon && !coupon) {
     throw new Error("Cupom invalido.");
   }
-  const shipping =
-    subtotal > 0 ? await calculateShipping(cep, subtotal, coupon) : { amount: 0, label: "Frete gratuito" };
-  const discount = subtotal > 0 ? calculateDiscount(subtotal, coupon) : 0;
+  const shipping = await calculateShipping(cep, subtotal, coupon);
+  const discount = calculateDiscount(subtotal, coupon);
 
-  return { subtotal, lineItems: paidLineItems, freeItems, shipping, discount, coupon };
+  return { subtotal, lineItems, shipping, discount, coupon };
 };
 
 const getEmailTransport = () => {
@@ -339,16 +327,6 @@ app.post("/create-checkout-session", async (req, res) => {
     });
 
     const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
-    if (lineItems.length === 0) {
-      const email = req.body.email;
-      if (!email) {
-        return res.status(400).json({ error: "Informe um e-mail para confirmar o pedido." });
-      }
-      const itemsText = buildItemsSummary(req.body.items || []);
-      await sendOrderEmail(email, itemsText);
-      updateStockFromItems(req.body.items || []);
-      return res.json({ url: `${baseUrl}/success.html` });
-    }
     const sessionConfig = {
       mode: "payment",
       line_items: lineItems,
