@@ -4,7 +4,8 @@
   "description": "Site de vendas com checkout Stripe",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:flows": "node scripts/flow-test.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
@@ -13,5 +14,8 @@
     "pg": "^8.11.5",
     "resend": "^4.0.0",
     "stripe": "^14.25.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.58.2"
   }
 }

@@ -277,7 +277,7 @@ const updateCartUI = () => {
       ${item.variantLabel ? `<div class="cart-meta"><span>${item.variantLabel}</span></div>` : ""}
       <div class="cart-meta">
         <span>${item.quantity}x</span>
-        <strong>${currencyFormatter.format(item.price * item.quantity)}</strong>
+        <strong>${formatCurrency(item.price * item.quantity)}</strong>
       </div>
       <button type="button" data-remove="${index}">${locales[currentLocale].remove}</button>
     `;
