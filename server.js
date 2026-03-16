@@ -246,15 +246,85 @@ app.get("/api/products", (req, res) => {
   res.json(productsCache);
 });
 
-app.get("/admin/orders", (req, res) => {
-  const adminKey = process.env.ADMIN_KEY;
-  if (!adminKey) {
-    return res.status(403).send("ADMIN_KEY nao configurada.");
+const adminUser = process.env.ADMIN_USER || "";
+const adminPass = process.env.ADMIN_PASS || "";
+
+const adminHtml = (body) => `
+  <!DOCTYPE html>
+  <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Admin - Theotimus</title>
+      <style>
+        body { font-family: Arial, sans-serif; background:#f5f1eb; color:#2e1b16; padding:24px; }
+        .card { max-width: 460px; margin: 80px auto; background:#fff; padding:28px; border-radius:16px; box-shadow: 0 18px 40px rgba(0,0,0,0.08); }
+        h1 { margin-bottom: 16px; }
+        label { display:block; font-size: 13px; margin: 12px 0 6px; }
+        input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc; }
+        button { margin-top: 16px; padding: 10px 18px; border-radius: 999px; border: none; background:#7c1414; color:#fff; cursor: pointer; }
+        .error { color: #7c1414; margin-top: 8px; font-size: 13px; }
+      </style>
+    </head>
+    <body>
+      ${body}
+    </body>
+  </html>
+`;
+
+app.get("/admin/login", (req, res) => {
+  const error = req.query.error ? "<div class='error'>Usuario ou senha invalidos.</div>" : "";
+  res.send(
+    adminHtml(`
+      <div class="card">
+        <h1>Login Admin</h1>
+        <form method="POST" action="/admin/login">
+          <label>Usuario</label>
+          <input type="text" name="user" required />
+          <label>Senha</label>
+          <input type="password" name="pass" required />
+          <button type="submit">Entrar</button>
+          ${error}
+        </form>
+      </div>
+    `)
+  );
+});
+
+app.post("/admin/login", express.urlencoded({ extended: false }), (req, res) => {
+  if (!adminUser || !adminPass) {
+    return res.status(403).send("ADMIN_USER/ADMIN_PASS nao configurados.");
   }
-  const provided = req.query.key;
-  if (provided !== adminKey) {
-    return res.status(401).send("Acesso negado.");
+  const { user, pass } = req.body;
+  if (user === adminUser && pass === adminPass) {
+    res.setHeader(
+      "Set-Cookie",
+      `admin_session=${Buffer.from(`${user}:${pass}`).toString("base64")}; HttpOnly; Path=/; SameSite=Lax`
+    );
+    return res.redirect("/admin/orders");
   }
+  return res.redirect("/admin/login?error=1");
+});
+
+const requireAdmin = (req, res, next) => {
+  const cookie = req.headers.cookie || "";
+  const match = cookie.match(/admin_session=([^;]+)/);
+  if (!match) {
+    return res.redirect("/admin/login");
+  }
+  const value = Buffer.from(match[1], "base64").toString("utf-8");
+  if (value === `${adminUser}:${adminPass}`) {
+    return next();
+  }
+  return res.redirect("/admin/login");
+};
+
+app.post("/admin/logout", (req, res) => {
+  res.setHeader("Set-Cookie", "admin_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax");
+  res.redirect("/admin/login");
+});
+
+app.get("/admin/orders", requireAdmin, (req, res) => {
   let orders = [];
   if (fs.existsSync(ordersPath)) {
     try {
@@ -287,41 +357,31 @@ app.get("/admin/orders", (req, res) => {
     })
     .join("");
 
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Pedidos - Theotimus</title>
-        <style>
-          body { font-family: Arial, sans-serif; background:#f5f1eb; color:#2e1b16; padding:24px; }
-          h1 { margin-bottom: 16px; }
-          table { width: 100%; border-collapse: collapse; background:#fff; }
-          th, td { border:1px solid #ddd; padding:12px; vertical-align: top; font-size: 14px; }
-          th { background:#7c1414; color:#fff; text-align:left; }
-        </style>
-      </head>
-      <body>
+  res.send(
+    adminHtml(`
+      <div style="display:flex; justify-content: space-between; align-items:center;">
         <h1>Pedidos recebidos</h1>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Data</th>
-              <th>Cliente</th>
-              <th>Endereco</th>
-              <th>Itens</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows || "<tr><td colspan='6'>Nenhum pedido ainda.</td></tr>"}
-          </tbody>
-        </table>
-      </body>
-    </html>
-  `);
+        <form method="POST" action="/admin/logout">
+          <button type="submit">Sair</button>
+        </form>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; background:#fff;">
+        <thead>
+          <tr style="background:#7c1414; color:#fff;">
+            <th style="padding:12px; text-align:left;">ID</th>
+            <th style="padding:12px; text-align:left;">Data</th>
+            <th style="padding:12px; text-align:left;">Cliente</th>
+            <th style="padding:12px; text-align:left;">Endereco</th>
+            <th style="padding:12px; text-align:left;">Itens</th>
+            <th style="padding:12px; text-align:left;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows || "<tr><td colspan='6' style='padding:12px;'>Nenhum pedido ainda.</td></tr>"}
+        </tbody>
+      </table>
+    `)
+  );
 });
 
 app.post("/api/quote", async (req, res) => {
