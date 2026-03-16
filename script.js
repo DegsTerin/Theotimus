@@ -15,6 +15,7 @@ const modalOverlay = document.querySelector("[data-modal-overlay]");
 const modalClose = document.querySelector("[data-modal-close]");
 const modalMessage = document.querySelector("[data-modal-message]");
 const cepInput = document.querySelector("[data-cep-input]");
+const emailInput = document.querySelector("[data-email-input]");
 const couponInput = document.querySelector("[data-coupon-input]");
 const quoteButton = document.querySelector("[data-quote]");
 
@@ -119,6 +120,7 @@ const refreshQuote = async () => {
         items: cart,
         cep: cepInput?.value || "",
         coupon: couponInput?.value || "",
+        email: emailInput?.value || "",
       }),
     });
     const data = await response.json();
@@ -214,6 +216,7 @@ checkoutButton?.addEventListener("click", () => {
       items: cart,
       cep: cepInput?.value || "",
       coupon: couponInput?.value || "",
+      email: emailInput?.value || "",
     }),
   })
     .then(async (response) => {

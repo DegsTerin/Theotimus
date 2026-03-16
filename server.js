@@ -176,6 +176,31 @@ const getEmailTransport = () => {
   });
 };
 
+const buildItemsSummary = (items) =>
+  items
+    .map((item) => {
+      const entry = getProductVariant(item.productId, item.variantId);
+      if (!entry) {
+        return null;
+      }
+      return `${item.quantity}x ${entry.product.name} (${entry.variant.size}, ${entry.variant.color}, ${entry.variant.material})`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+const sendOrderEmail = async (email, itemsText) => {
+  const transport = getEmailTransport();
+  if (!transport) {
+    throw new Error("SMTP nao configurado.");
+  }
+  await transport.sendMail({
+    from: process.env.SMTP_FROM || "no-reply@theotimus.com.br",
+    to: email,
+    subject: "Pedido confirmado - Theotimus",
+    text: `Recebemos seu pedido!\n\nItens:\n${itemsText}\n\nObrigado pela compra.`,
+  });
+};
+
   const updateStockFromItems = (items) => {
     if (!Array.isArray(items)) {
       return;
@@ -284,6 +309,12 @@ app.post("/create-checkout-session", async (req, res) => {
 
     const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
     if (lineItems.length === 0) {
+      const email = req.body.email;
+      if (!email) {
+        return res.status(400).json({ error: "Informe um e-mail para confirmar o pedido." });
+      }
+      const itemsText = buildItemsSummary(req.body.items || []);
+      await sendOrderEmail(email, itemsText);
       updateStockFromItems(req.body.items || []);
       return res.json({ url: `${baseUrl}/success.html` });
     }
@@ -292,6 +323,7 @@ app.post("/create-checkout-session", async (req, res) => {
       line_items: lineItems,
       success_url: `${baseUrl}/success.html`,
       cancel_url: `${baseUrl}/cancel.html`,
+      customer_email: req.body.email || undefined,
       metadata: {
         items: JSON.stringify(
           (req.body.items || []).map((item) => ({
