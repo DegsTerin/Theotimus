@@ -246,6 +246,76 @@ app.get("/api/products", (req, res) => {
   res.json(productsCache);
 });
 
+app.get("/admin/orders", (req, res) => {
+  let orders = [];
+  if (fs.existsSync(ordersPath)) {
+    try {
+      orders = JSON.parse(fs.readFileSync(ordersPath, "utf-8"));
+    } catch (error) {
+      orders = [];
+    }
+  }
+
+  const rows = orders
+    .map((order) => {
+      const address = order.address
+        ? `${order.address.line1 || ""} ${order.address.line2 || ""}, ${order.address.city || ""} - ${
+            order.address.state || ""
+          }, ${order.address.postal_code || ""}`
+        : "Sem endereco";
+      const items = order.items
+        .map((item) => `${item.quantity}x ${item.description} (R$ ${item.amount.toFixed(2)})`)
+        .join("<br/>");
+      return `
+        <tr>
+          <td>${order.id}</td>
+          <td>${order.createdAt}</td>
+          <td>${order.name || ""}<br/>${order.email || ""}</td>
+          <td>${address}</td>
+          <td>${items}</td>
+          <td>R$ ${order.amount.toFixed(2)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Pedidos - Theotimus</title>
+        <style>
+          body { font-family: Arial, sans-serif; background:#f5f1eb; color:#2e1b16; padding:24px; }
+          h1 { margin-bottom: 16px; }
+          table { width: 100%; border-collapse: collapse; background:#fff; }
+          th, td { border:1px solid #ddd; padding:12px; vertical-align: top; font-size: 14px; }
+          th { background:#7c1414; color:#fff; text-align:left; }
+        </style>
+      </head>
+      <body>
+        <h1>Pedidos recebidos</h1>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Data</th>
+              <th>Cliente</th>
+              <th>Endereco</th>
+              <th>Itens</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || "<tr><td colspan='6'>Nenhum pedido ainda.</td></tr>"}
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `);
+});
+
 app.post("/api/quote", async (req, res) => {
   try {
     const result = await computeOrder({
