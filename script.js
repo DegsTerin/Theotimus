@@ -7,6 +7,7 @@ const cartItemsEl = document.querySelector("[data-cart-items]");
 const cartSubtotalEl = document.querySelector("[data-cart-subtotal]");
 const cartShippingEl = document.querySelector("[data-cart-shipping]");
 const cartDiscountEl = document.querySelector("[data-cart-discount]");
+const cartTaxEl = document.querySelector("[data-cart-tax]");
 const cartTotalEl = document.querySelector("[data-cart-total]");
 const cartCountEl = document.querySelector(".cart-count");
 const checkoutButton = document.querySelector("[data-checkout]");
@@ -20,9 +21,23 @@ const couponInput = document.querySelector("[data-coupon-input]");
 const quoteButton = document.querySelector("[data-quote]");
 const localeSelect = document.querySelector("[data-locale-select]");
 const currencySelect = document.querySelector("[data-currency-select]");
+const collectionGrid = document.querySelector("[data-collection-grid]");
+const filterSearchInput = document.querySelector("[data-filter-search]");
+const filterCategorySelect = document.querySelector("[data-filter-category]");
+const filterMinInput = document.querySelector("[data-filter-min]");
+const filterMaxInput = document.querySelector("[data-filter-max]");
+const filterSortSelect = document.querySelector("[data-filter-sort]");
+const filterNewToggle = document.querySelector("[data-filter-new]");
+const filterBestToggle = document.querySelector("[data-filter-best]");
+const filterResetButton = document.querySelector("[data-filter-reset]");
+const filterResultCount = document.querySelector("[data-filter-count]");
+let cartSyncTimeout = null;
 
 const productsCache = new Map();
-let lastQuote = { shipping: 0, discount: 0 };
+let lastQuote = { shipping: 0, discount: 0, tax: 0, taxLabel: "" };
+let allProducts = [];
+let applyFiltersFn = null;
+let filtersBound = false;
 
 if (menuButton && siteNav) {
   menuButton.addEventListener("click", () => {
@@ -74,6 +89,7 @@ const locales = {
     label_subtotal: "Subtotal",
     label_shipping: "Frete",
     label_discount: "Desconto",
+    label_tax: "Taxas e impostos",
     label_total: "Total",
     btn_checkout: "Finalizar compra",
     modal_title: "Aviso",
@@ -88,6 +104,26 @@ const locales = {
     stock_limited: "Sem estoque suficiente para essa variacao.",
     variant_unavailable: "Variacao indisponivel.",
     fetch_failed: "Falha ao carregar produtos.",
+    filters_title: "Buscar e filtrar",
+    filters_search: "Buscar por nome ou descricao",
+    filters_category: "Categoria",
+    filters_min: "Preco minimo",
+    filters_max: "Preco maximo",
+    filters_sort: "Ordenar por",
+    filters_new: "Novidades",
+    filters_best: "Mais vendidos",
+    filters_reset: "Limpar filtros",
+    filters_results: "resultados",
+    filters_empty: "Nenhum produto encontrado.",
+    filters_all: "Todas as categorias",
+    filters_price_low: "Menor preco",
+    filters_price_high: "Maior preco",
+    filters_newest: "Novidades",
+    filters_best_seller: "Mais vendidos",
+    product_details: "Detalhes do produto",
+    product_reviews: "Avaliacoes de clientes",
+    product_reviews_empty: "Ainda nao ha avaliacoes.",
+    product_back: "Voltar para a loja",
   },
   "en-GB": {
     nav_collection: "Collection",
@@ -123,6 +159,7 @@ const locales = {
     label_subtotal: "Subtotal",
     label_shipping: "Shipping",
     label_discount: "Discount",
+    label_tax: "Taxes",
     label_total: "Total",
     btn_checkout: "Checkout",
     modal_title: "Notice",
@@ -137,6 +174,26 @@ const locales = {
     stock_limited: "Not enough stock for this variant.",
     variant_unavailable: "Variant unavailable.",
     fetch_failed: "Failed to load products.",
+    filters_title: "Search and filter",
+    filters_search: "Search by name or description",
+    filters_category: "Category",
+    filters_min: "Min price",
+    filters_max: "Max price",
+    filters_sort: "Sort by",
+    filters_new: "New arrivals",
+    filters_best: "Best sellers",
+    filters_reset: "Clear filters",
+    filters_results: "results",
+    filters_empty: "No products found.",
+    filters_all: "All categories",
+    filters_price_low: "Lowest price",
+    filters_price_high: "Highest price",
+    filters_newest: "Newest",
+    filters_best_seller: "Best sellers",
+    product_details: "Product details",
+    product_reviews: "Customer reviews",
+    product_reviews_empty: "No reviews yet.",
+    product_back: "Back to store",
   },
 };
 
@@ -183,6 +240,26 @@ const persistCart = () => {
   localStorage.setItem("theotimus_cart", JSON.stringify(cart));
 };
 
+const scheduleCartSync = () => {
+  if (!emailInput) {
+    return;
+  }
+  if (cartSyncTimeout) {
+    clearTimeout(cartSyncTimeout);
+  }
+  cartSyncTimeout = setTimeout(() => {
+    const email = (emailInput.value || "").trim();
+    if (!email || cart.length === 0) {
+      return;
+    }
+    fetch("/api/cart/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, items: cart }),
+    }).catch(() => {});
+  }, 1500);
+};
+
 const updateCartUI = () => {
   if (!cartItemsEl || !cartTotalEl || !cartCountEl || !cartSubtotalEl) {
     return;
@@ -211,11 +288,22 @@ const updateCartUI = () => {
     cartItemsEl.innerHTML = `<p>${locales[currentLocale].empty_cart}</p>`;
   }
 
+  const taxAmount = typeof lastQuote.tax === "number" ? lastQuote.tax : 0;
   cartSubtotalEl.textContent = formatCurrency(total);
   cartShippingEl.textContent = formatCurrency(lastQuote.shipping || 0);
   cartDiscountEl.textContent = formatCurrency(lastQuote.discount || 0);
-  cartTotalEl.textContent = formatCurrency(total + (lastQuote.shipping || 0) - (lastQuote.discount || 0));
+  if (cartTaxEl) {
+    if (lastQuote.tax === null && lastQuote.taxLabel) {
+      cartTaxEl.textContent = lastQuote.taxLabel;
+    } else {
+      cartTaxEl.textContent = formatCurrency(taxAmount);
+    }
+  }
+  cartTotalEl.textContent = formatCurrency(
+    total + (lastQuote.shipping || 0) + taxAmount - (lastQuote.discount || 0)
+  );
   cartCountEl.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+  scheduleCartSync();
 };
 
 const openCart = () => {
@@ -265,7 +353,12 @@ const refreshQuote = async () => {
     if (!response.ok) {
       throw new Error(data.error || "Nao foi possivel calcular.");
     }
-    lastQuote = { shipping: data.shipping, discount: data.discount };
+    lastQuote = {
+      shipping: data.shipping,
+      discount: data.discount,
+      tax: typeof data.tax === "number" ? data.tax : null,
+      taxLabel: data.taxLabel || "",
+    };
     updateCartUI();
   } catch (error) {
     showModal(error.message || "Nao foi possivel calcular.");
@@ -275,53 +368,62 @@ const refreshQuote = async () => {
 };
 
 quoteButton?.addEventListener("click", refreshQuote);
+emailInput?.addEventListener("blur", scheduleCartSync);
 
-document.querySelectorAll(".add-to-cart").forEach((button) => {
-  button.addEventListener("click", () => {
-    const productId = button.getAttribute("data-product-id");
-    if (!productId) {
+const bindAddToCartButtons = (root = document) => {
+  root.querySelectorAll(".add-to-cart").forEach((button) => {
+    if (button.dataset.bound === "1") {
       return;
     }
-    const product = productsCache.get(productId);
-    const variantId = button.getAttribute("data-variant-id");
-    if (!product || !variantId) {
-      showModal(locales[currentLocale].variant_required);
-      return;
-    }
-    const variant = product.variants.find((item) => item.id === variantId);
-    if (!variant) {
-      showModal(locales[currentLocale].variant_invalid);
-      return;
-    }
+    button.dataset.bound = "1";
+    button.addEventListener("click", () => {
+      const productId = button.getAttribute("data-product-id");
+      if (!productId) {
+        return;
+      }
+      const product = productsCache.get(productId);
+      const variantId = button.getAttribute("data-variant-id");
+      if (!product || !variantId) {
+        showModal(locales[currentLocale].variant_required);
+        return;
+      }
+      const variant = product.variants.find((item) => item.id === variantId);
+      if (!variant) {
+        showModal(locales[currentLocale].variant_invalid);
+        return;
+      }
 
-    const existing = cart.find(
-      (item) => item.productId === productId && item.variantId === variantId
-    );
-    const currentQty = existing ? existing.quantity : 0;
-    if (currentQty + 1 > variant.stock) {
-      showModal(locales[currentLocale].stock_limited);
-      return;
-    }
+      const existing = cart.find(
+        (item) => item.productId === productId && item.variantId === variantId
+      );
+      const currentQty = existing ? existing.quantity : 0;
+      if (currentQty + 1 > variant.stock) {
+        showModal(locales[currentLocale].stock_limited);
+        return;
+      }
 
-    const variantLabel = `${variant.size} · ${variant.color} · ${variant.material}`;
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      cart.push({
-        productId,
-        variantId,
-        name: product.name,
-        variantLabel,
-        price: variant.price,
-        quantity: 1,
-      });
-    }
-    lastQuote = { shipping: 0, discount: 0 };
-    persistCart();
-    updateCartUI();
-    openCart();
+      const variantLabel = `${variant.size} · ${variant.color} · ${variant.material}`;
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        cart.push({
+          productId,
+          variantId,
+          name: product.name,
+          variantLabel,
+          price: variant.price,
+          quantity: 1,
+        });
+      }
+      lastQuote = { shipping: 0, discount: 0, tax: 0, taxLabel: "" };
+      persistCart();
+      updateCartUI();
+      openCart();
+    });
   });
-});
+};
+
+bindAddToCartButtons();
 
 cartItemsEl?.addEventListener("click", (event) => {
   const target = event.target;
@@ -333,7 +435,7 @@ cartItemsEl?.addEventListener("click", (event) => {
     return;
   }
   cart.splice(Number(index), 1);
-  lastQuote = { shipping: 0, discount: 0 };
+  lastQuote = { shipping: 0, discount: 0, tax: 0, taxLabel: "" };
   persistCart();
   updateCartUI();
 });
@@ -478,6 +580,203 @@ const renderVariantSelectors = (product) => {
   updateVariant();
 };
 
+const getPriceRange = (product) => {
+  const prices = product.variants.map((variant) => Number(variant.price) || 0);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  return { min, max };
+};
+
+const renderCollectionGrid = (products) => {
+  if (!collectionGrid) {
+    return;
+  }
+  if (!products.length) {
+    collectionGrid.innerHTML = `<div class="collection-empty">${locales[currentLocale].filters_empty}</div>`;
+    if (filterResultCount) {
+      filterResultCount.textContent = "0";
+    }
+    return;
+  }
+  collectionGrid.innerHTML = products
+    .map((product) => {
+      const priceRange = getPriceRange(product);
+      const rating = product.rating || 0;
+      const reviewCount = product.reviewCount || 0;
+      const image = product.images && product.images.length ? product.images[0] : "";
+      const tags = [];
+      if (product.bestSeller) tags.push(currentLocale === "en-GB" ? "Best seller" : "Mais vendido");
+      if (product.isNew) tags.push(currentLocale === "en-GB" ? "New" : "Novidade");
+      if (product.category) tags.push(product.category);
+      return `
+        <article class="collection-card" data-product-id="${product.id}">
+          <a class="image-box photo" href="product.html?id=${product.id}" style="${
+            image ? `background-image:url('${image}')` : ""
+          }">
+            ${tags[0] ? `<span class="image-badge">${tags[0]}</span>` : ""}
+          </a>
+          <div class="card-tags">${tags.slice(1).map((tag) => `<span>${tag}</span>`).join("")}</div>
+          <h3 data-product-name="${product.id}">${product.name}</h3>
+          <p>${product.description || ""}</p>
+          <div class="rating-line">${rating.toFixed(1)} / 5 (${reviewCount})</div>
+          <div class="variant-selectors" data-product-id="${product.id}"></div>
+          <div class="stock-status" data-product-id="${product.id}"></div>
+          <div class="card-footer">
+            <span class="price-tag product-price" data-product-id="${product.id}">
+              ${formatCurrency(priceRange.min)}
+            </span>
+            <div class="card-actions-inline">
+              <a class="ghost-button small" href="product.html?id=${product.id}">
+                ${currentLocale === "en-GB" ? "Details" : "Detalhes"}
+              </a>
+              <button
+                class="secondary-button small add-to-cart"
+                type="button"
+                data-product-id="${product.id}"
+              >
+                ${currentLocale === "en-GB" ? "Add" : "Adicionar"}
+              </button>
+            </div>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+
+  products.forEach((product) => renderVariantSelectors(product));
+  bindAddToCartButtons(collectionGrid);
+  if (filterResultCount) {
+    filterResultCount.textContent = String(products.length);
+  }
+};
+
+const setupFilters = (products) => {
+  allProducts = products;
+  if (!filterCategorySelect || !filterSortSelect || !filterSearchInput) {
+    renderCollectionGrid(products);
+    return;
+  }
+
+  const categories = Array.from(
+    new Set(products.map((product) => product.category).filter(Boolean))
+  );
+
+  const currentCategory = filterCategorySelect.value;
+  const currentSort = filterSortSelect.value;
+
+  filterCategorySelect.innerHTML = `
+    <option value="">${locales[currentLocale].filters_all}</option>
+    ${categories.map((cat) => `<option value="${cat}">${cat}</option>`).join("")}
+  `;
+
+  filterSortSelect.innerHTML = `
+    <option value="featured">${locales[currentLocale].filters_sort}</option>
+    <option value="price_low">${locales[currentLocale].filters_price_low}</option>
+    <option value="price_high">${locales[currentLocale].filters_price_high}</option>
+    <option value="newest">${locales[currentLocale].filters_newest}</option>
+    <option value="best">${locales[currentLocale].filters_best_seller}</option>
+  `;
+
+  if (currentCategory) {
+    filterCategorySelect.value = currentCategory;
+  }
+  if (currentSort) {
+    filterSortSelect.value = currentSort;
+  }
+
+  const priceRange = products.reduce(
+    (acc, product) => {
+      const range = getPriceRange(product);
+      return {
+        min: Math.min(acc.min, range.min),
+        max: Math.max(acc.max, range.max),
+      };
+    },
+    { min: Number.MAX_SAFE_INTEGER, max: 0 }
+  );
+
+  if (filterMinInput) {
+    filterMinInput.placeholder = formatCurrency(priceRange.min);
+  }
+  if (filterMaxInput) {
+    filterMaxInput.placeholder = formatCurrency(priceRange.max);
+  }
+
+  const applyFilters = () => {
+    const query = (filterSearchInput.value || "").toLowerCase().trim();
+    const category = filterCategorySelect.value;
+    const min = Number(filterMinInput?.value || 0);
+    const max = Number(filterMaxInput?.value || 0);
+    const sort = filterSortSelect.value;
+    const onlyNew = filterNewToggle?.classList.contains("active");
+    const onlyBest = filterBestToggle?.classList.contains("active");
+
+    let next = [...products];
+    if (query) {
+      next = next.filter(
+        (product) =>
+          product.name.toLowerCase().includes(query) ||
+          (product.description || "").toLowerCase().includes(query) ||
+          (product.category || "").toLowerCase().includes(query)
+      );
+    }
+    if (category) {
+      next = next.filter((product) => product.category === category);
+    }
+    if (onlyNew) {
+      next = next.filter((product) => product.isNew);
+    }
+    if (onlyBest) {
+      next = next.filter((product) => product.bestSeller);
+    }
+    if (min) {
+      next = next.filter((product) => getPriceRange(product).min >= min);
+    }
+    if (max) {
+      next = next.filter((product) => getPriceRange(product).min <= max);
+    }
+    if (sort === "price_low") {
+      next.sort((a, b) => getPriceRange(a).min - getPriceRange(b).min);
+    } else if (sort === "price_high") {
+      next.sort((a, b) => getPriceRange(b).min - getPriceRange(a).min);
+    } else if (sort === "newest") {
+      next.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    } else if (sort === "best") {
+      next.sort((a, b) => (b.bestSellerRank || 0) - (a.bestSellerRank || 0));
+    }
+    renderCollectionGrid(next);
+  };
+  applyFiltersFn = applyFilters;
+
+  if (!filtersBound) {
+    [filterSearchInput, filterCategorySelect, filterMinInput, filterMaxInput, filterSortSelect]
+      .filter(Boolean)
+      .forEach((input) => input.addEventListener("input", applyFilters));
+
+    filterNewToggle?.addEventListener("click", () => {
+      filterNewToggle.classList.toggle("active");
+      applyFilters();
+    });
+    filterBestToggle?.addEventListener("click", () => {
+      filterBestToggle.classList.toggle("active");
+      applyFilters();
+    });
+    filterResetButton?.addEventListener("click", () => {
+      filterSearchInput.value = "";
+      filterCategorySelect.value = "";
+      if (filterMinInput) filterMinInput.value = "";
+      if (filterMaxInput) filterMaxInput.value = "";
+      filterSortSelect.value = "featured";
+      filterNewToggle?.classList.remove("active");
+      filterBestToggle?.classList.remove("active");
+      applyFilters();
+    });
+    filtersBound = true;
+  }
+
+  applyFilters();
+};
+
 fetch("/api/products")
   .then((res) => res.json())
   .then((data) => {
@@ -485,6 +784,7 @@ fetch("/api/products")
       productsCache.set(product.id, product);
       renderVariantSelectors(product);
     });
+    setupFilters(data);
   })
   .catch(() => {
     showModal(locales[currentLocale].fetch_failed);
@@ -494,6 +794,11 @@ const applySettings = () => {
   updateLocaleText();
   updateCartUI();
   productsCache.forEach((product) => renderVariantSelectors(product));
+  if (allProducts.length) {
+    setupFilters(allProducts);
+  } else if (applyFiltersFn) {
+    applyFiltersFn();
+  }
 };
 
 localeSelect?.addEventListener("change", () => {
@@ -515,3 +820,15 @@ if (currencySelect) {
   currencySelect.value = currentCurrency;
 }
 updateLocaleText();
+
+window.Theotimus = {
+  renderVariantSelectors,
+  bindAddToCartButtons,
+  formatCurrency,
+  updateLocaleText,
+  applySettings,
+  openCart,
+  productsCache,
+  getLocale: () => currentLocale,
+  getCurrency: () => currentCurrency,
+};

@@ -3,6 +3,31 @@
     "id": "relicario",
     "name": "Relicario Santa Luz",
     "description": "Metal trabalhado, banho dourado e acabamento artesanal.",
+    "category": "Relicarios",
+    "isNew": true,
+    "bestSeller": true,
+    "bestSellerRank": 95,
+    "createdAt": "2026-03-01",
+    "rating": 4.9,
+    "reviewCount": 32,
+    "images": [
+      "assets/relicario-1.svg",
+      "assets/relicario-2.svg"
+    ],
+    "reviews": [
+      {
+        "name": "Mariana Lopes",
+        "rating": 5,
+        "date": "2026-03-04",
+        "text": "Acabamento impecavel e embalagem linda."
+      },
+      {
+        "name": "Joao Pedro",
+        "rating": 5,
+        "date": "2026-03-08",
+        "text": "Material de qualidade e entrega rapida."
+      }
+    ],
     "variants": [
       {
         "id": "relicario-p-dourado-metal",
@@ -34,6 +59,31 @@
     "id": "terco",
     "name": "Terco Rosario Classico",
     "description": "Madeira nobre com detalhes em metal escovado.",
+    "category": "Tercos",
+    "isNew": false,
+    "bestSeller": true,
+    "bestSellerRank": 100,
+    "createdAt": "2025-12-10",
+    "rating": 4.8,
+    "reviewCount": 48,
+    "images": [
+      "assets/terco-1.svg",
+      "assets/terco-2.svg"
+    ],
+    "reviews": [
+      {
+        "name": "Silvana Souza",
+        "rating": 5,
+        "date": "2026-02-02",
+        "text": "Perfeito para uso diario, muito bonito."
+      },
+      {
+        "name": "Carlos Mendes",
+        "rating": 4,
+        "date": "2026-02-18",
+        "text": "Otimo custo beneficio e acabamento correto."
+      }
+    ],
     "variants": [
       {
         "id": "terco-54-clara-madeira",
@@ -65,6 +115,25 @@
     "id": "crucifixo",
     "name": "Crucifixo de Parede",
     "description": "Acabamento envelhecido e textura artesanal.",
+    "category": "Crucifixos",
+    "isNew": true,
+    "bestSeller": false,
+    "bestSellerRank": 60,
+    "createdAt": "2026-02-20",
+    "rating": 4.6,
+    "reviewCount": 18,
+    "images": [
+      "assets/crucifixo-1.svg",
+      "assets/crucifixo-2.svg"
+    ],
+    "reviews": [
+      {
+        "name": "Roberto Lima",
+        "rating": 5,
+        "date": "2026-02-25",
+        "text": "Peça robusta e elegante para a sala."
+      }
+    ],
     "variants": [
       {
         "id": "crucifixo-20-bronze-madeira",
@@ -88,6 +157,25 @@
     "id": "livro",
     "name": "Livro de Oracoes",
     "description": "Capa dura, 240 paginas, letras confortaveis.",
+    "category": "Livros",
+    "isNew": false,
+    "bestSeller": false,
+    "bestSellerRank": 40,
+    "createdAt": "2025-11-18",
+    "rating": 4.7,
+    "reviewCount": 26,
+    "images": [
+      "assets/livro-1.svg",
+      "assets/livro-2.svg"
+    ],
+    "reviews": [
+      {
+        "name": "Fernanda Alves",
+        "rating": 5,
+        "date": "2026-01-12",
+        "text": "Leitura confortavel e acabamento bonito."
+      }
+    ],
     "variants": [
       {
         "id": "livro-bolso-azul-couro",
@@ -111,6 +199,25 @@
     "id": "marcador",
     "name": "Marcador de Biblia",
     "description": "Brinde para leitura diaria e estudos.",
+    "category": "Acessorios",
+    "isNew": true,
+    "bestSeller": false,
+    "bestSellerRank": 30,
+    "createdAt": "2026-03-05",
+    "rating": 4.5,
+    "reviewCount": 12,
+    "images": [
+      "assets/marcador-1.svg",
+      "assets/marcador-2.svg"
+    ],
+    "reviews": [
+      {
+        "name": "Ana Clara",
+        "rating": 4,
+        "date": "2026-03-10",
+        "text": "Simples e util, gostei do acabamento."
+      }
+    ],
     "variants": [
       {
         "id": "marcador-papel-azul",

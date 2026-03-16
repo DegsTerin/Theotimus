@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Theotimus | Produto</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Spectral:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="page" data-fx-usd="0.20" data-fx-eur="0.18" data-fx-gbp="0.16">
+      <header class="site-header">
+        <a class="logo" href="/" aria-label="Theotimus">
+          <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 120 120" role="img" aria-hidden="true">
+              <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="6" />
+              <rect x="32" y="30" width="56" height="14" fill="currentColor" />
+              <rect x="52" y="42" width="16" height="52" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="logo-type">
+            <span class="logo-title">THEOTIMUS</span>
+            <span class="logo-sub">Artigos religiosos</span>
+          </span>
+        </a>
+        <nav class="site-nav" aria-label="Principal">
+          <a href="/#colecao" data-i18n="nav_collection">Colecao</a>
+          <a href="/#destaques" data-i18n="nav_highlights">Destaques</a>
+          <a href="/#presentes" data-i18n="nav_gifts">Presentes</a>
+          <a href="/#contato" data-i18n="nav_contact">Contato</a>
+        </nav>
+        <button class="menu-button" type="button" aria-label="Abrir menu">
+          <span></span>
+          <span></span>
+        </button>
+        <div class="header-actions">
+          <div class="locale-controls">
+            <select class="locale-select" aria-label="Idioma" data-locale-select>
+              <option value="pt-BR">PT-BR</option>
+              <option value="en-GB">EN-GB</option>
+            </select>
+            <select class="currency-select" aria-label="Moeda" data-currency-select>
+              <option value="BRL">BRL</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+          </div>
+          <a class="ghost-button" href="/account/login" data-i18n="btn_login">Entrar</a>
+          <button class="cart-button" type="button" aria-label="Abrir carrinho">
+            <span data-i18n="btn_cart">Carrinho</span>
+            <span class="cart-count" aria-live="polite">0</span>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="product-page" data-product-root>
+          <div class="product-gallery" data-product-gallery></div>
+          <div class="product-info" data-product-info></div>
+        </section>
+        <section class="product-reviews" data-product-reviews></section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="footer-grid">
+          <div>
+            <h3>Theotimus</h3>
+            <p>Artigos religiosos com curadoria, qualidade e respeito a tradicao.</p>
+          </div>
+          <div>
+            <h4>Contato</h4>
+            <p>WhatsApp: (11) 99999-0000</p>
+            <p>E-mail: contato@theotimus.com.br</p>
+          </div>
+          <div>
+            <h4>Loja</h4>
+            <p>Rua da Luz, 215 · Sao Paulo</p>
+            <p>Segunda a sabado · 09h as 18h</p>
+          </div>
+          <div>
+            <h4>Social</h4>
+            <p>@theotimus.oficial</p>
+            <p>@theotimus.br</p>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>© 2026 Theotimus. Todos os direitos reservados.</span>
+          <span>Politica de privacidade · Trocas e devolucoes</span>
+        </div>
+      </footer>
+    </div>
+
+    <div class="cart-overlay" data-cart-overlay></div>
+    <aside class="cart-drawer" aria-label="Carrinho de compras" aria-hidden="true">
+      <div class="cart-header">
+        <div>
+          <h3 data-i18n="cart_title">Seu carrinho</h3>
+          <p data-i18n="cart_subtitle">Revise seus itens antes de finalizar.</p>
+        </div>
+        <button class="ghost-button cart-close" type="button" data-i18n="btn_close">Fechar</button>
+      </div>
+      <div class="cart-items" data-cart-items></div>
+      <div class="cart-inputs">
+        <label>
+          <span data-i18n="label_cep">CEP para entrega</span>
+          <input type="text" placeholder="00000-000" data-cep-input data-i18n-placeholder="placeholder_cep" />
+        </label>
+        <label>
+          <span data-i18n="label_email">E-mail para confirmacao</span>
+          <input type="email" placeholder="seuemail@exemplo.com" data-email-input data-i18n-placeholder="placeholder_email" />
+        </label>
+        <label>
+          <span data-i18n="label_coupon">Cupom de desconto</span>
+          <input type="text" placeholder="EX: BEMVINDO10" data-coupon-input data-i18n-placeholder="placeholder_coupon" />
+        </label>
+        <button class="secondary-button small" type="button" data-quote data-i18n="btn_quote">
+          Calcular frete e cupom
+        </button>
+        <div class="cart-note" data-i18n="cart_note">
+          Precos exibidos podem variar. Conversao final no checkout do Stripe.
+        </div>
+      </div>
+      <div class="cart-footer">
+        <div class="cart-totals">
+          <div>
+            <span data-i18n="label_subtotal">Subtotal</span>
+            <strong data-cart-subtotal>R$ 0,00</strong>
+          </div>
+          <div>
+            <span data-i18n="label_shipping">Frete</span>
+            <strong data-cart-shipping>R$ 0,00</strong>
+          </div>
+          <div>
+            <span data-i18n="label_discount">Desconto</span>
+            <strong data-cart-discount>R$ 0,00</strong>
+          </div>
+          <div>
+            <span data-i18n="label_tax">Taxas e impostos</span>
+            <strong data-cart-tax>R$ 0,00</strong>
+          </div>
+          <div class="cart-total">
+            <span data-i18n="label_total">Total</span>
+            <strong data-cart-total>R$ 0,00</strong>
+          </div>
+        </div>
+        <button class="primary-button" type="button" data-checkout data-i18n="btn_checkout">
+          Finalizar compra
+        </button>
+      </div>
+    </aside>
+    <div class="modal-overlay" data-modal-overlay></div>
+    <div class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal-header" data-i18n="modal_title">Aviso</div>
+      <p data-modal-message>Nao foi possivel iniciar o pagamento.</p>
+      <div class="modal-actions">
+        <button class="primary-button small" type="button" data-modal-close>OK</button>
+      </div>
+    </div>
+    <script src="script.js"></script>
+    <script src="product.js"></script>
+  </body>
+</html>

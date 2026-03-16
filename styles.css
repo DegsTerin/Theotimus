@@ -182,6 +182,13 @@ body {
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
+a.ghost-button {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .primary-button {
   background: var(--wine);
   color: #fff;
@@ -229,6 +236,11 @@ body {
 .primary-button.small,
 .secondary-button.small {
   padding: 10px 16px;
+  font-size: 11px;
+}
+
+.ghost-button.small {
+  padding: 8px 14px;
   font-size: 11px;
 }
 
@@ -381,6 +393,52 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.collection-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 18px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-soft);
+}
+
+.filter-block {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.filter-block input,
+.filter-block select {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(30, 15, 12, 0.2);
+  background: #fff;
+  font-family: "Spectral", serif;
+  font-size: 13px;
+}
+
+.filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.filter-actions .ghost-button.active {
+  background: var(--wine);
+  color: #fff;
+  border-color: transparent;
+}
+
+.filter-count {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .collection-card {
   background: #fff;
   border-radius: var(--radius-sm);
@@ -401,6 +459,16 @@ body {
   font-size: 36px;
   position: relative;
   overflow: hidden;
+}
+
+.image-box.photo {
+  background-size: cover;
+  background-position: center;
+  text-decoration: none;
+}
+
+.image-box.photo .image-badge {
+  display: inline-block;
 }
 
 .image-box.alt {
@@ -426,6 +494,39 @@ body {
   border-radius: 999px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.card-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.card-tags span {
+  background: rgba(124, 20, 20, 0.08);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.rating-line {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.card-actions-inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.collection-empty {
+  background: #fff;
+  padding: 24px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  box-shadow: var(--shadow-soft);
 }
 
 .card-footer {
@@ -583,6 +684,87 @@ body {
   display: grid;
   gap: 20px;
   box-shadow: var(--shadow);
+}
+
+.product-page {
+  padding: 60px 8vw;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 40px;
+  align-items: start;
+}
+
+.product-gallery {
+  display: grid;
+  gap: 16px;
+}
+
+.gallery-main {
+  background: #fff;
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.gallery-main img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  display: block;
+}
+
+.gallery-thumbs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gallery-thumbs .thumb {
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.gallery-thumbs img {
+  width: 90px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.product-info {
+  background: #fff;
+  padding: 28px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 16px;
+}
+
+.product-info h1 {
+  font-family: "Cinzel", serif;
+  font-size: clamp(2rem, 2.6vw, 2.6rem);
+}
+
+.product-meta {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+  color: var(--wine);
+  font-family: "Cinzel", serif;
+}
+
+.product-price-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.product-reviews {
+  padding: 0 8vw 60px;
 }
 
 .newsletter-form {

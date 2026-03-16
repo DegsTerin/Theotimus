@@ -55,7 +55,7 @@
               <option value="GBP">GBP</option>
             </select>
           </div>
-          <button class="ghost-button" type="button" data-i18n="btn_login">Entrar</button>
+          <a class="ghost-button" href="/account/login" data-i18n="btn_login">Entrar</a>
           <button class="cart-button" type="button" aria-label="Abrir carrinho">
             <span data-i18n="btn_cart">Carrinho</span>
             <span class="cart-count" aria-live="polite">0</span>
@@ -128,85 +128,35 @@
             </div>
             <button class="ghost-button" type="button">Ver todos</button>
           </div>
-          <div class="collection-grid">
-            <article class="collection-card" data-product-id="terco">
-              <div class="image-box">
-                <span class="image-badge">Mais vendido</span>
-                <span class="icon">T</span>
-              </div>
-              <h3 data-product-name="terco">Terco Rosario Classico</h3>
-              <p>Madeira nobre com detalhes em metal escovado.</p>
-              <div class="variant-selectors" data-product-id="terco"></div>
-              <div class="stock-status" data-product-id="terco"></div>
-              <div class="card-footer">
-                <span class="price-tag product-price" data-product-id="terco">R$ 79,00</span>
-                <button
-                  class="secondary-button small add-to-cart"
-                  type="button"
-                  data-product-id="terco"
-                >
-                  Adicionar
-                </button>
-              </div>
-            </article>
-            <article class="collection-card" data-product-id="crucifixo">
-              <div class="image-box alt">
-                <span class="icon">✝</span>
-              </div>
-              <h3 data-product-name="crucifixo">Crucifixo de Parede</h3>
-              <p>Acabamento envelhecido e textura artesanal.</p>
-              <div class="variant-selectors" data-product-id="crucifixo"></div>
-              <div class="stock-status" data-product-id="crucifixo"></div>
-              <div class="card-footer">
-                <span class="price-tag product-price" data-product-id="crucifixo">R$ 129,00</span>
-                <button
-                  class="secondary-button small add-to-cart"
-                  type="button"
-                  data-product-id="crucifixo"
-                >
-                  Adicionar
-                </button>
-              </div>
-            </article>
-            <article class="collection-card" data-product-id="livro">
-              <div class="image-box muted">
-                <span class="icon">✣</span>
-              </div>
-              <h3 data-product-name="livro">Livro de Oracoes</h3>
-              <p>Capa dura, 240 paginas, letras confortaveis.</p>
-              <div class="variant-selectors" data-product-id="livro"></div>
-              <div class="stock-status" data-product-id="livro"></div>
-              <div class="card-footer">
-                <span class="price-tag product-price" data-product-id="livro">R$ 64,00</span>
-                <button
-                  class="secondary-button small add-to-cart"
-                  type="button"
-                  data-product-id="livro"
-                >
-                  Adicionar
-                </button>
-              </div>
-            </article>
-            <article class="collection-card" data-product-id="marcador">
-              <div class="image-box soft">
-                <span class="icon">✦</span>
-              </div>
-              <h3 data-product-name="marcador">Marcador de Biblia</h3>
-              <p>Brinde para leitura diaria e estudos.</p>
-              <div class="variant-selectors" data-product-id="marcador"></div>
-              <div class="stock-status" data-product-id="marcador"></div>
-              <div class="card-footer">
-                <span class="price-tag product-price" data-product-id="marcador">R$ 0,50</span>
-                <button
-                  class="secondary-button small add-to-cart"
-                  type="button"
-                  data-product-id="marcador"
-                >
-                  Adicionar
-                </button>
-              </div>
-            </article>
+          <div class="collection-filters">
+            <div class="filter-block">
+              <label data-i18n="filters_title">Buscar e filtrar</label>
+              <input type="text" data-filter-search data-i18n-placeholder="filters_search" placeholder="Buscar por nome ou descricao" />
+            </div>
+            <div class="filter-block">
+              <label data-i18n="filters_category">Categoria</label>
+              <select data-filter-category></select>
+            </div>
+            <div class="filter-block">
+              <label data-i18n="filters_min">Preco minimo</label>
+              <input type="number" min="0" step="1" data-filter-min />
+            </div>
+            <div class="filter-block">
+              <label data-i18n="filters_max">Preco maximo</label>
+              <input type="number" min="0" step="1" data-filter-max />
+            </div>
+            <div class="filter-block">
+              <label data-i18n="filters_sort">Ordenar por</label>
+              <select data-filter-sort></select>
+            </div>
+            <div class="filter-actions">
+              <button class="ghost-button small" type="button" data-filter-new data-i18n="filters_new">Novidades</button>
+              <button class="ghost-button small" type="button" data-filter-best data-i18n="filters_best">Mais vendidos</button>
+              <button class="secondary-button small" type="button" data-filter-reset data-i18n="filters_reset">Limpar filtros</button>
+              <span class="filter-count"><strong data-filter-count>0</strong> <span data-i18n="filters_results">resultados</span></span>
+            </div>
           </div>
+          <div class="collection-grid" data-collection-grid></div>
         </section>
 
         <section id="destaques" class="highlights">
@@ -396,6 +346,10 @@
           <div>
             <span data-i18n="label_discount">Desconto</span>
             <strong data-cart-discount>R$ 0,00</strong>
+          </div>
+          <div>
+            <span data-i18n="label_tax">Taxas e impostos</span>
+            <strong data-cart-tax>R$ 0,00</strong>
           </div>
           <div class="cart-total">
             <span data-i18n="label_total">Total</span>
