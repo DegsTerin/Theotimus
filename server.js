@@ -651,7 +651,7 @@ const computeOrder = async ({ items, cep, couponCode }) => {
 
 const emailDisabled = true;
 
-  const updateStockFromItems = (items) => {
+const updateStockFromItems = (items) => {
     if (!Array.isArray(items)) {
       return;
     }
@@ -671,6 +671,29 @@ const emailDisabled = true;
   if (updated) {
     fs.writeFileSync(productsPath, JSON.stringify(productsCache, null, 2));
   }
+};
+
+const slugify = (text) =>
+  String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "") || `produto-${Date.now()}`;
+
+const saveProducts = () => {
+  fs.writeFileSync(productsPath, JSON.stringify(productsCache, null, 2));
+};
+
+const toSimpleProduct = (product) => {
+  const firstVariant = product.variants?.[0] || {};
+  return {
+    id: product.id,
+    name: product.name,
+    price: Number(firstVariant.price ?? product.price ?? 0),
+    stock: Number(firstVariant.stock ?? product.stock ?? 0),
+    description: product.description || "",
+    image: Array.isArray(product.images) ? product.images[0] || "" : product.image || "",
+  };
 };
 
 app.post(
@@ -778,6 +801,29 @@ const adminHtml = (body) => `
   </html>
 `;
 
+const adminPage = ({ title, content }) =>
+  adminHtml(`
+    <div style="display:flex; gap:20px; align-items:flex-start;">
+      <aside style="min-width:180px; background:#fff; padding:18px; border-radius:16px; border:1px solid #eadfd6;">
+        <h3 style="margin-bottom:12px;">Admin</h3>
+        <nav style="display:grid; gap:10px; font-size:14px;">
+          <a href="/admin">Dashboard</a>
+          <a href="/admin/orders">Pedidos</a>
+          <a href="/admin/products">Produtos</a>
+        </nav>
+      </aside>
+      <main style="flex:1;">
+        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:16px;">
+          <h1 style="margin:0;">${title}</h1>
+          <form method="POST" action="/admin/logout">
+            <button type="submit">Sair</button>
+          </form>
+        </div>
+        ${content}
+      </main>
+    </div>
+  `);
+
 app.get("/admin/login", (req, res) => {
   const error = req.query.error ? "<div class='error'>Usuario ou senha invalidos.</div>" : "";
   res.send(
@@ -807,7 +853,7 @@ app.post("/admin/login", express.urlencoded({ extended: false }), (req, res) => 
       "Set-Cookie",
       `admin_session=${Buffer.from(`${user}:${pass}`).toString("base64")}; HttpOnly; Path=/; SameSite=Lax`
     );
-    return res.redirect("/admin/orders");
+    return res.redirect("/admin");
   }
   return res.redirect("/admin/login?error=1");
 });
@@ -825,9 +871,111 @@ const requireAdmin = (req, res, next) => {
   return res.redirect("/admin/login");
 };
 
+app.get("/products", (req, res) => {
+  res.json(productsCache.map(toSimpleProduct));
+});
+
+app.post("/products", requireAdmin, (req, res) => {
+  const payload = req.body || {};
+  const id = String(payload.id || "").trim() || slugify(payload.name);
+  if (!payload.name || !id) {
+    return res.status(400).json({ ok: false, error: "Dados invalidos." });
+  }
+  if (productsCache.find((item) => item.id === id)) {
+    return res.status(400).json({ ok: false, error: "ID ja existe." });
+  }
+  const price = Number(payload.price || 0);
+  const stock = Number(payload.stock || 0);
+  const product = {
+    id,
+    name: String(payload.name || "").trim(),
+    description: String(payload.description || "").trim(),
+    images: payload.image ? [String(payload.image).trim()] : [],
+    variants: [
+      {
+        id: `${id}-unico`,
+        size: "Unico",
+        color: "Padrao",
+        material: "",
+        price,
+        stock,
+      },
+    ],
+  };
+  productsCache.unshift(product);
+  saveProducts();
+  res.json({ ok: true, product: toSimpleProduct(product) });
+});
+
+app.put("/products/:id", requireAdmin, (req, res) => {
+  const currentId = String(req.params.id || "");
+  const payload = req.body || {};
+  const nextId = String(payload.id || currentId).trim();
+  const index = productsCache.findIndex((item) => item.id === currentId);
+  if (index === -1) {
+    return res.status(404).json({ ok: false, error: "Produto nao encontrado." });
+  }
+  if (nextId !== currentId && productsCache.some((item) => item.id === nextId)) {
+    return res.status(400).json({ ok: false, error: "ID ja existe." });
+  }
+  const product = { ...productsCache[index] };
+  product.id = nextId;
+  product.name = String(payload.name || product.name || "").trim();
+  product.description = String(payload.description || product.description || "").trim();
+  if (payload.image !== undefined) {
+    const image = String(payload.image || "").trim();
+    product.images = image ? [image] : [];
+  }
+  const price = Number(payload.price ?? product.variants?.[0]?.price ?? product.price ?? 0);
+  const stock = Number(payload.stock ?? product.variants?.[0]?.stock ?? product.stock ?? 0);
+  if (!Array.isArray(product.variants) || product.variants.length === 0) {
+    product.variants = [
+      { id: `${product.id}-unico`, size: "Unico", color: "Padrao", material: "", price, stock },
+    ];
+  } else {
+    product.variants = product.variants.map((variant) => ({ ...variant, price, stock }));
+  }
+  productsCache[index] = product;
+  saveProducts();
+  res.json({ ok: true, product: toSimpleProduct(product) });
+});
+
+app.delete("/products/:id", requireAdmin, (req, res) => {
+  const id = String(req.params.id || "");
+  const next = productsCache.filter((item) => item.id !== id);
+  if (next.length === productsCache.length) {
+    return res.status(404).json({ ok: false, error: "Produto nao encontrado." });
+  }
+  productsCache = next;
+  saveProducts();
+  res.json({ ok: true });
+});
+
 app.post("/admin/logout", (req, res) => {
   res.setHeader("Set-Cookie", "admin_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax");
   res.redirect("/admin/login");
+});
+
+app.get("/admin", requireAdmin, (req, res) => {
+  res.send(
+    adminPage({
+      title: "Dashboard",
+      content: `
+        <div style="display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+          <div class="card" style="padding:18px; margin:0;">
+            <h3>Pedidos</h3>
+            <p>Veja e atualize status dos pedidos recebidos.</p>
+            <a href="/admin/orders">Ir para pedidos</a>
+          </div>
+          <div class="card" style="padding:18px; margin:0;">
+            <h3>Produtos</h3>
+            <p>Cadastre, edite e gerencie estoque.</p>
+            <a href="/admin/products">Ir para produtos</a>
+          </div>
+        </div>
+      `,
+    })
+  );
 });
 
 app.post("/admin/orders/update", requireAdmin, express.urlencoded({ extended: false }), (req, res) => {
@@ -925,36 +1073,175 @@ app.get("/admin/orders/logs", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/products", requireAdmin, (req, res) => {
+  const rows = productsCache
+    .map((product) => {
+      const firstVariant = product.variants?.[0] || {};
+      const price = typeof firstVariant.price === "number" ? firstVariant.price : product.price || 0;
+      const stock =
+        typeof firstVariant.stock === "number"
+          ? firstVariant.stock
+          : product.stock || 0;
+      const image = Array.isArray(product.images) ? product.images[0] : product.image || "";
+      const safeDescription = String(product.description || "").replace(/"/g, "&quot;");
+      return `
+        <tr data-id="${product.id}" data-description="${safeDescription}">
+          <td>${product.id}</td>
+          <td>${product.name}</td>
+          <td>R$ ${Number(price).toFixed(2)}</td>
+          <td>${Number(stock)}</td>
+          <td><img src="${image}" alt="${product.name}" style="width:48px; height:36px; object-fit:cover; border-radius:8px;" /></td>
+          <td>
+            <button type="button" data-edit="${product.id}">Editar</button>
+            <button type="button" data-delete="${product.id}">Excluir</button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  res.send(
+    adminPage({
+      title: "Produtos",
+      content: `
+        <div style="display:grid; gap:18px;">
+          <div class="card" style="max-width:none; margin:0; padding:20px;">
+            <h3>Adicionar / Editar</h3>
+            <form id="productForm" style="display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+              <input type="hidden" name="originalId" />
+              <label>Id<input name="id" required /></label>
+              <label>Nome<input name="name" required /></label>
+              <label>Preco<input name="price" type="number" step="0.01" required /></label>
+              <label>Estoque<input name="stock" type="number" step="1" required /></label>
+              <label>Imagem (URL)<input name="image" /></label>
+              <label style="grid-column: 1 / -1;">Descricao<textarea name="description" rows="3" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #ccc; font-family: inherit;"></textarea></label>
+              <div style="grid-column: 1 / -1; display:flex; gap:10px; align-items:center;">
+                <button type="submit">Salvar</button>
+                <button type="button" id="resetForm">Novo produto</button>
+                <a href="/admin/products/import">Importar via JSON/CSV</a>
+              </div>
+            </form>
+          </div>
+
+          <div class="card" style="max-width:none; margin:0; padding:20px;">
+            <h3>Lista de produtos</h3>
+            <table style="width:100%; border-collapse: collapse;">
+              <thead>
+                <tr style="text-align:left; font-size:13px; color:#7c6a62;">
+                  <th>ID</th>
+                  <th>Nome</th>
+                  <th>Preco</th>
+                  <th>Estoque</th>
+                  <th>Imagem</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows || "<tr><td colspan='6' style='padding:12px;'>Sem produtos.</td></tr>"}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <script>
+          const form = document.getElementById("productForm");
+          const resetBtn = document.getElementById("resetForm");
+
+          const fillForm = (row) => {
+            const id = row.getAttribute("data-id");
+            const cells = row.querySelectorAll("td");
+            form.originalId.value = id;
+            form.id.value = id;
+            form.name.value = cells[1].innerText.trim();
+            form.price.value = Number(cells[2].innerText.replace("R$", "").trim().replace(",", "."));
+            form.stock.value = Number(cells[3].innerText.trim());
+            const img = row.querySelector("img");
+            form.image.value = img ? img.getAttribute("src") : "";
+            form.description.value = row.getAttribute("data-description") || "";
+          };
+
+          document.querySelectorAll("[data-edit]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const row = btn.closest("tr");
+              if (row) fillForm(row);
+            });
+          });
+
+          document.querySelectorAll("[data-delete]").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+              const id = btn.getAttribute("data-delete");
+              if (!id || !confirm("Excluir produto?")) return;
+              await fetch(\`/products/\${id}\`, { method: "DELETE" });
+              location.reload();
+            });
+          });
+
+          resetBtn.addEventListener("click", () => {
+            form.reset();
+            form.originalId.value = "";
+          });
+
+          form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const payload = {
+              id: form.id.value.trim(),
+              name: form.name.value.trim(),
+              price: Number(form.price.value),
+              stock: Number(form.stock.value),
+              description: form.description.value.trim(),
+              image: form.image.value.trim(),
+              originalId: form.originalId.value.trim() || undefined,
+            };
+            const method = payload.originalId ? "PUT" : "POST";
+            const url = payload.originalId ? \`/products/\${payload.originalId}\` : "/products";
+            const response = await fetch(url, {
+              method,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            if (!response.ok) {
+              alert("Falha ao salvar produto.");
+              return;
+            }
+            location.reload();
+          });
+        </script>
+      `,
+    })
+  );
+});
+
+app.get("/admin/products/import", requireAdmin, (req, res) => {
   const error = req.query.error ? "<div class='error'>Falha ao atualizar produtos.</div>" : "";
   const success = req.query.success ? "<div class='success'>Produtos atualizados.</div>" : "";
   res.send(
-    adminHtml(`
-      <div class="card" style="max-width:760px;">
-        <h1>Produtos</h1>
-        <p>Edite via JSON ou CSV (uma linha por variante).</p>
-        ${error}
-        ${success}
-        <form method="POST" action="/admin/products">
-          <label>Formato</label>
-          <select name="format" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #ccc;">
-            <option value="json">JSON</option>
-            <option value="csv">CSV</option>
-          </select>
-          <label>Conteudo</label>
-          <textarea name="payload" rows="18" style="width:100%; padding:12px; border-radius:12px; border:1px solid #ccc; font-family: monospace;"></textarea>
-          <button type="submit">Salvar</button>
-        </form>
-        <div style="margin-top:18px; font-size:13px; color:#7c6a62;">
-          <strong>CSV esperado:</strong> product_id,product_name,description,category,is_new,best_seller,created_at,review_count,rating,images,variant_id,size,color,material,price,stock
+    adminPage({
+      title: "Importar produtos",
+      content: `
+        <div class="card" style="max-width:760px; margin:0;">
+          <p>Edite via JSON ou CSV (uma linha por variante).</p>
+          ${error}
+          ${success}
+          <form method="POST" action="/admin/products/import">
+            <label>Formato</label>
+            <select name="format" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #ccc;">
+              <option value="json">JSON</option>
+              <option value="csv">CSV</option>
+            </select>
+            <label>Conteudo</label>
+            <textarea name="payload" rows="18" style="width:100%; padding:12px; border-radius:12px; border:1px solid #ccc; font-family: monospace;"></textarea>
+            <button type="submit">Salvar</button>
+          </form>
+          <div style="margin-top:18px; font-size:13px; color:#7c6a62;">
+            <strong>CSV esperado:</strong> product_id,product_name,description,category,is_new,best_seller,created_at,review_count,rating,images,variant_id,size,color,material,price,stock
+          </div>
+          <div style="margin-top:12px;">
+            <a href="/admin/products.csv">Baixar CSV</a> · <a href="/admin/products.json">Baixar JSON</a>
+          </div>
         </div>
-        <div style="margin-top:12px;">
-          <a href="/admin/products.csv">Baixar CSV</a> · <a href="/admin/products.json">Baixar JSON</a>
-        </div>
-      </div>
-      <style>
-        .success { color:#2b7a2b; margin-top:8px; font-size:13px; }
-      </style>
-    `)
+        <style>
+          .success { color:#2b7a2b; margin-top:8px; font-size:13px; }
+        </style>
+      `,
+    })
   );
 });
 
@@ -1013,7 +1300,7 @@ app.get("/admin/products.csv", requireAdmin, (req, res) => {
 });
 
 app.post(
-  "/admin/products",
+  "/admin/products/import",
   requireAdmin,
   express.urlencoded({ extended: false, limit: "2mb" }),
   (req, res) => {
@@ -1021,7 +1308,7 @@ app.post(
       const format = String(req.body.format || "json").toLowerCase();
       const payload = String(req.body.payload || "");
       if (!payload.trim()) {
-        return res.redirect("/admin/products?error=1");
+        return res.redirect("/admin/products/import?error=1");
       }
       let nextProducts = [];
       if (format === "csv") {
@@ -1031,13 +1318,13 @@ app.post(
         nextProducts = Array.isArray(parsed) ? parsed : [];
       }
       if (!Array.isArray(nextProducts) || nextProducts.length === 0) {
-        return res.redirect("/admin/products?error=1");
+        return res.redirect("/admin/products/import?error=1");
       }
       productsCache = nextProducts;
       fs.writeFileSync(productsPath, JSON.stringify(productsCache, null, 2));
-      res.redirect("/admin/products?success=1");
+      res.redirect("/admin/products/import?success=1");
     } catch (error) {
-      res.redirect("/admin/products?error=1");
+      res.redirect("/admin/products/import?error=1");
     }
   }
 );
@@ -1097,37 +1384,33 @@ app.get("/admin/orders", requireAdmin, (req, res) => {
     .join("");
 
   res.send(
-    adminHtml(`
-      <div style="display:flex; justify-content: space-between; align-items:center;">
-        <h1>Pedidos recebidos</h1>
-        <form method="POST" action="/admin/logout">
-          <button type="submit">Sair</button>
-        </form>
-      </div>
-      <div style="margin: 12px 0 18px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
-        <input id="orderFilter" type="text" placeholder="Buscar por cliente, email ou ID" style="padding:10px 12px; border-radius:10px; border:1px solid #ccc; min-width: 280px;" />
-        <a href="/admin/orders.csv">Exportar CSV</a>
-        <a href="/admin/orders/logs">Ver logs</a>
-      </div>
-      <div class="board">
-        ${boards}
-      </div>
-      <style>
-        .board { display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-        .column { background:#fff; border-radius:14px; padding:12px; min-height: 240px; border: 1px solid #eadfd6; }
-        .column-header { display:flex; justify-content: space-between; align-items:center; font-weight:700; margin-bottom:12px; color:#4a2a22; }
-        .count { background:#7c1414; color:#fff; font-size:12px; padding:2px 8px; border-radius:999px; }
-        .column-body { min-height: 160px; display:flex; flex-direction:column; gap:10px; }
-        .card { background:#fdf9f5; border-radius:12px; padding:10px; border:1px solid #eadfd6; cursor: grab; }
-        .card-title { font-weight:700; margin-bottom:4px; }
-        .card-section { margin-top:6px; font-size:13px; }
-        .card-actions { display:flex; gap:8px; margin-top:10px; }
-        .card-actions button { padding:6px 10px; border-radius:999px; border:1px solid #7c1414; background:#fff; color:#7c1414; cursor:pointer; font-size:12px; }
-        .muted { color:#7c6a62; font-size:12px; }
-        .empty { color:#9a8d84; font-size:12px; padding:8px; }
-        .column-body.drag-over { outline: 2px dashed #7c1414; outline-offset: 4px; }
-      </style>
-      <script>
+    adminPage({
+      title: "Pedidos recebidos",
+      content: `
+        <div style="margin: 12px 0 18px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+          <input id="orderFilter" type="text" placeholder="Buscar por cliente, email ou ID" style="padding:10px 12px; border-radius:10px; border:1px solid #ccc; min-width: 280px;" />
+          <a href="/admin/orders.csv">Exportar CSV</a>
+          <a href="/admin/orders/logs">Ver logs</a>
+        </div>
+        <div class="board">
+          ${boards}
+        </div>
+        <style>
+          .board { display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+          .column { background:#fff; border-radius:14px; padding:12px; min-height: 240px; border: 1px solid #eadfd6; }
+          .column-header { display:flex; justify-content: space-between; align-items:center; font-weight:700; margin-bottom:12px; color:#4a2a22; }
+          .count { background:#7c1414; color:#fff; font-size:12px; padding:2px 8px; border-radius:999px; }
+          .column-body { min-height: 160px; display:flex; flex-direction:column; gap:10px; }
+          .card { background:#fdf9f5; border-radius:12px; padding:10px; border:1px solid #eadfd6; cursor: grab; }
+          .card-title { font-weight:700; margin-bottom:4px; }
+          .card-section { margin-top:6px; font-size:13px; }
+          .card-actions { display:flex; gap:8px; margin-top:10px; }
+          .card-actions button { padding:6px 10px; border-radius:999px; border:1px solid #7c1414; background:#fff; color:#7c1414; cursor:pointer; font-size:12px; }
+          .muted { color:#7c6a62; font-size:12px; }
+          .empty { color:#9a8d84; font-size:12px; padding:8px; }
+          .column-body.drag-over { outline: 2px dashed #7c1414; outline-offset: 4px; }
+        </style>
+        <script>
         const statusFlow = ["novo","pagamento","separacao","enviado","entregue","problema","cancelado"];
         const filterInput = document.getElementById("orderFilter");
         const cards = Array.from(document.querySelectorAll(".card"));
@@ -1184,8 +1467,9 @@ app.get("/admin/orders", requireAdmin, (req, res) => {
             }
           });
         });
-      </script>
-    `)
+        </script>
+      `,
+    })
   );
   };
 
