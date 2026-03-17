@@ -1359,6 +1359,7 @@ app.post("/api/quote", async (req, res) => {
 
 app.post("/create-checkout-session", async (req, res) => {
   try {
+
     console.log("Checkout request received", {
       itemsCount: Array.isArray(req.body.items) ? req.body.items.length : 0,
       hasEmail: Boolean(req.body.email),
@@ -1377,7 +1378,9 @@ app.post("/create-checkout-session", async (req, res) => {
     const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
 
     const allowedLocales = ["pt-BR", "en-GB"];
-    const locale = allowedLocales.includes(req.body.locale) ? req.body.locale : "pt-BR";
+    const locale = allowedLocales.includes(req.body.locale)
+      ? req.body.locale
+      : "auto";
 
     const countriesEnv =
       process.env.SHIPPING_COUNTRIES ||
@@ -1387,10 +1390,6 @@ app.post("/create-checkout-session", async (req, res) => {
       .split(",")
       .map((c) => c.trim())
       .filter(Boolean);
-
-    const paymentMethodTypes = checkoutPaymentMethodsRaw
-      ? checkoutPaymentMethodsRaw.split(",").map((item) => item.trim()).filter(Boolean)
-      : ["card", "pix", "boleto"];
 
     if (!stripeTaxEnabled && typeof taxes.amount === "number" && taxes.amount > 0) {
       lineItems.push({
@@ -1404,18 +1403,20 @@ app.post("/create-checkout-session", async (req, res) => {
     }
 
     const sessionConfig = {
-      mode: "payment",
 
-      payment_method_types: paymentMethodTypes,
+      mode: "payment",
 
       line_items: lineItems,
 
       success_url: `${baseUrl}/success.html`,
+
       cancel_url: `${baseUrl}/cancel.html`,
 
       customer_email: req.body.email || undefined,
 
       locale,
+
+      payment_method_types: ["card", "pix"],
 
       shipping_address_collection: {
         allowed_countries: allowedCountries,
@@ -1445,21 +1446,17 @@ app.post("/create-checkout-session", async (req, res) => {
       ],
     };
 
-    if (paymentMethodTypes.includes("boleto")) {
-      sessionConfig.payment_method_options = {
-        boleto: {
-          expires_after_days: boletoExpiresDays,
-        },
-      };
-    }
-
     if (stripeTaxEnabled) {
       sessionConfig.automatic_tax = { enabled: true };
       sessionConfig.customer_creation = "always";
-      sessionConfig.customer_update = { address: "auto", shipping: "auto" };
+      sessionConfig.customer_update = {
+        address: "auto",
+        shipping: "auto",
+      };
     }
 
     if (coupon && discount > 0 && coupon.type !== "free_shipping") {
+
       const couponKey =
         coupon.type === "amount"
           ? `amount:${Math.round(discount * 100)}`
@@ -1468,15 +1465,18 @@ app.post("/create-checkout-session", async (req, res) => {
       let stripeCouponId = couponCache.get(couponKey);
 
       if (!stripeCouponId) {
+
         const stripeCoupon = await stripe.coupons.create({
           duration: "once",
           percent_off: coupon.type === "percent" ? coupon.value : undefined,
-          amount_off: coupon.type === "amount" ? Math.round(discount * 100) : undefined,
+          amount_off:
+            coupon.type === "amount" ? Math.round(discount * 100) : undefined,
           currency: coupon.type === "amount" ? "brl" : undefined,
           name: `Cupom ${coupon.type}`,
         });
 
         stripeCouponId = stripeCoupon.id;
+
         couponCache.set(couponKey, stripeCouponId);
       }
 
@@ -1488,11 +1488,13 @@ app.post("/create-checkout-session", async (req, res) => {
     return res.json({ url: session.url });
 
   } catch (error) {
+
     console.error("Checkout error:", error);
 
     return res.status(500).json({
       error: error.message || "Erro no checkout.",
     });
+
   }
 });
 
