@@ -531,8 +531,13 @@ a.ghost-button {
 
 .card-footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-actions-inline {
+  display: flex;
+  gap: 8px;
 }
 
 .variant-selectors {
