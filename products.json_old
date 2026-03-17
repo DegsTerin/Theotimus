@@ -11,7 +11,8 @@
     "rating": 4.9,
     "reviewCount": 32,
     "images": [
-      "https://dcdn-us.mitiendanube.com/stores/001/171/032/products/img_1511-c040ab08a0e82a11c017444767183158-1024-1024.webp"
+      "assets/relicario-1.svg",
+      "assets/relicario-2.svg"
     ],
     "reviews": [
       {
@@ -41,8 +42,8 @@
         "size": "Medio",
         "color": "Dourado",
         "material": "Metal",
-        "price": 289,
-        "stock": 6
+        "price": 299,
+        "stock": 4
       },
       {
         "id": "relicario-m-bronze-metal",
@@ -50,7 +51,7 @@
         "color": "Bronze",
         "material": "Metal",
         "price": 289,
-        "stock": 6
+        "stock": 3
       }
     ]
   },
@@ -66,7 +67,8 @@
     "rating": 4.8,
     "reviewCount": 48,
     "images": [
-      "https://images.tcdn.com.br/img/img_prod/1219321/terco_perola_crucifixo_classico_prata_169_1_037819b3685b681fd487c193bb69afcd.jpg"
+      "assets/terco-1.svg",
+      "assets/terco-2.svg"
     ],
     "reviews": [
       {
@@ -97,15 +99,15 @@
         "color": "Madeira escura",
         "material": "Madeira",
         "price": 79,
-        "stock": 12
+        "stock": 9
       },
       {
         "id": "terco-70-escura-madeira",
         "size": "70 cm",
         "color": "Madeira escura",
         "material": "Madeira",
-        "price": 79,
-        "stock": 12
+        "price": 89,
+        "stock": 6
       }
     ]
   },
@@ -121,7 +123,8 @@
     "rating": 4.6,
     "reviewCount": 18,
     "images": [
-      "https://acdn-us.mitiendanube.com/stores/001/246/529/products/img_9920-2f98d80d6efa7e70c117231443104957-640-0.webp"
+      "assets/crucifixo-1.svg",
+      "assets/crucifixo-2.svg"
     ],
     "reviews": [
       {
@@ -145,8 +148,8 @@
         "size": "30 cm",
         "color": "Dourado",
         "material": "Madeira + metal",
-        "price": 129,
-        "stock": 5
+        "price": 159,
+        "stock": 4
       }
     ]
   },
@@ -162,7 +165,8 @@
     "rating": 4.7,
     "reviewCount": 26,
     "images": [
-      "https://loja.cancaonova.com/upload/produto/imagem/b_o-livro-das-ora-es-cat-licas-capa-ter-o-1.webp"
+      "assets/livro-1.svg",
+      "assets/livro-2.svg"
     ],
     "reviews": [
       {
@@ -186,8 +190,8 @@
         "size": "Grande",
         "color": "Vermelho",
         "material": "Capa couro",
-        "price": 64,
-        "stock": 10
+        "price": 74,
+        "stock": 7
       }
     ]
   },
@@ -203,7 +207,8 @@
     "rating": 4.5,
     "reviewCount": 12,
     "images": [
-      "https://oficinadoio.com.br/wp-content/uploads/2022/05/marcador-de-pagina-evangelico-todas-as-cores.jpg.webp"
+      "assets/marcador-1.svg",
+      "assets/marcador-2.svg"
     ],
     "reviews": [
       {
