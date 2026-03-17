@@ -1363,9 +1363,11 @@ app.post("/create-checkout-session", async (req, res) => {
       itemsCount: Array.isArray(req.body.items) ? req.body.items.length : 0,
       hasEmail: Boolean(req.body.email),
     });
+
     if (!req.body.email) {
       return res.status(400).json({ error: "Informe um e-mail para continuar." });
     }
+
     const { lineItems, shipping, discount, coupon, taxes } = await computeOrder({
       items: req.body.items,
       cep: req.body.cep,
@@ -1373,14 +1375,22 @@ app.post("/create-checkout-session", async (req, res) => {
     });
 
     const baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
+
     const allowedLocales = ["pt-BR", "en-GB"];
-    const locale = allowedLocales.includes(req.body.locale) ? req.body.locale : "auto";
-    const countriesEnv = process.env.SHIPPING_COUNTRIES || "BR,US,GB,IE,DE,FR,ES,IT,NL,BE,PT,CA,AU,JP";
-    const allowedCountries = countriesEnv.split(",").map((c) => c.trim()).filter(Boolean);
+    const locale = allowedLocales.includes(req.body.locale) ? req.body.locale : "pt-BR";
+
+    const countriesEnv =
+      process.env.SHIPPING_COUNTRIES ||
+      "BR,US,GB,IE,DE,FR,ES,IT,NL,BE,PT,CA,AU,JP";
+
+    const allowedCountries = countriesEnv
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
 
     const paymentMethodTypes = checkoutPaymentMethodsRaw
       ? checkoutPaymentMethodsRaw.split(",").map((item) => item.trim()).filter(Boolean)
-      : null;
+      : ["card", "pix", "boleto"];
 
     if (!stripeTaxEnabled && typeof taxes.amount === "number" && taxes.amount > 0) {
       lineItems.push({
@@ -1395,14 +1405,22 @@ app.post("/create-checkout-session", async (req, res) => {
 
     const sessionConfig = {
       mode: "payment",
+
+      payment_method_types: paymentMethodTypes,
+
       line_items: lineItems,
+
       success_url: `${baseUrl}/success.html`,
       cancel_url: `${baseUrl}/cancel.html`,
+
       customer_email: req.body.email || undefined,
+
       locale,
+
       shipping_address_collection: {
         allowed_countries: allowedCountries,
       },
+
       metadata: {
         items: JSON.stringify(
           (req.body.items || []).map((item) => ({
@@ -1412,26 +1430,27 @@ app.post("/create-checkout-session", async (req, res) => {
           }))
         ),
       },
+
       shipping_options: [
         {
           shipping_rate_data: {
             type: "fixed_amount",
-            fixed_amount: { amount: Math.round(shipping.amount * 100), currency: "brl" },
+            fixed_amount: {
+              amount: Math.round(shipping.amount * 100),
+              currency: "brl",
+            },
             display_name: shipping.label,
           },
         },
       ],
     };
 
-    if (paymentMethodTypes && paymentMethodTypes.length) {
-      sessionConfig.payment_method_types = paymentMethodTypes;
-      if (paymentMethodTypes.includes("boleto")) {
-        sessionConfig.payment_method_options = {
-          boleto: { expires_after_days: boletoExpiresDays },
-        };
-      }
-    } else {
-      sessionConfig.automatic_payment_methods = { enabled: true };
+    if (paymentMethodTypes.includes("boleto")) {
+      sessionConfig.payment_method_options = {
+        boleto: {
+          expires_after_days: boletoExpiresDays,
+        },
+      };
     }
 
     if (stripeTaxEnabled) {
@@ -1445,7 +1464,9 @@ app.post("/create-checkout-session", async (req, res) => {
         coupon.type === "amount"
           ? `amount:${Math.round(discount * 100)}`
           : `percent:${coupon.value}`;
+
       let stripeCouponId = couponCache.get(couponKey);
+
       if (!stripeCouponId) {
         const stripeCoupon = await stripe.coupons.create({
           duration: "once",
@@ -1454,17 +1475,24 @@ app.post("/create-checkout-session", async (req, res) => {
           currency: coupon.type === "amount" ? "brl" : undefined,
           name: `Cupom ${coupon.type}`,
         });
+
         stripeCouponId = stripeCoupon.id;
         couponCache.set(couponKey, stripeCouponId);
       }
+
       sessionConfig.discounts = [{ coupon: stripeCouponId }];
     }
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
+
     return res.json({ url: session.url });
+
   } catch (error) {
     console.error("Checkout error:", error);
-    return res.status(500).json({ error: error.message || "Erro no checkout." });
+
+    return res.status(500).json({
+      error: error.message || "Erro no checkout.",
+    });
   }
 });
 
