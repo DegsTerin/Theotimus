@@ -5,12 +5,14 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "check": "node --check server.js && node --check script.js && node --check product.js && node --check scripts/flow-test.js",
+    "test": "npm run check",
     "test:flows": "node scripts/flow-test.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "nodemailer": "^6.9.13",
+    "nodemailer": "^9.0.3",
     "pg": "^8.11.5",
     "resend": "^4.0.0",
     "stripe": "^14.25.0"
