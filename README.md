@@ -1,8 +1,17 @@
 # Theotimus
 
+[![Quality](https://github.com/DegsTerin/Theotimus/actions/workflows/quality.yml/badge.svg)](https://github.com/DegsTerin/Theotimus/actions/workflows/quality.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 Theotimus is a bilingual e-commerce application for religious articles. The project combines a responsive storefront with a Node.js backend, payment processing, order persistence and transactional communication.
 
-![Theotimus storefront](assets/theotimus.onrender.com_index3.png)
+**Live application:** [https://theotimus.onrender.com/](https://theotimus.onrender.com/)
+
+## Storefront Preview
+
+| Home | Product catalogue | Responsive storefront |
+|---|---|---|
+| ![Theotimus home](assets/theotimus.onrender.com_index.png) | ![Theotimus catalogue](assets/theotimus.onrender.com_index2.png) | ![Theotimus responsive storefront](assets/theotimus.onrender.com_index3.png) |
 
 ## Engineering Scope
 
@@ -25,6 +34,21 @@ Theotimus is a bilingual e-commerce application for religious articles. The proj
 | Payments | Stripe Checkout and webhooks |
 | Email | Resend and Nodemailer |
 | Testing | Playwright |
+
+## Architecture
+
+```mermaid
+flowchart LR
+  U["Customer browser"] --> E["Express application"]
+  E --> P["PostgreSQL"]
+  E --> S["Stripe Checkout"]
+  S --> W["Signed webhook"]
+  W --> E
+  E --> M["Resend or SMTP"]
+  E --> A["Administrative and account routes"]
+```
+
+Secrets and credentials are supplied through environment variables. The repository contains only documented placeholders in `.env.example`.
 
 ## Local Setup
 
@@ -57,7 +81,13 @@ The server runs on `http://localhost:4242` by default.
 
 ## Tests
 
-Run the automated flow tests with:
+Run deterministic syntax checks with:
+
+```bash
+npm test
+```
+
+Run the deployed Playwright flow tests explicitly with:
 
 ```bash
 npm run test:flows
@@ -65,10 +95,16 @@ npm run test:flows
 
 Use Stripe test credentials and non-production service accounts for local development.
 
+The GitHub Actions quality workflow runs only the deterministic checks. It does not initiate checkout or call payment services.
+
 ## Security Notes
 
 - Never commit `.env`, API keys, webhook secrets or database credentials.
 - Validate Stripe webhook signatures before processing payment events.
 - Use HTTPS and managed secrets in deployed environments.
 - Keep customer and order data out of logs and public test fixtures.
+
+## License
+
+This project is released under the [MIT License](LICENSE).
 
